@@ -1,4 +1,4 @@
-/* CloudAnime AnimeNoSub v1.1.0 — standalone runtime provider. */
+/* CloudAnime AnimeNoSub v1.1.1 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -256,7 +256,12 @@ function cloudAnimeFilterStreams(streams, providerId) {
     return CryptoJS.lib.WordArray.create(w, data.length);
   }
   function aesBlock(block, key) {
-    return bytes(CryptoJS.AES.encrypt(word(block), word(key), { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.NoPadding }).ciphertext);
+    // CBC's first block with a zero IV equals ECB. VUEO requires an explicit
+    // 16-byte IV even when ECB is requested, so use its supported CBC path.
+    var encrypted = CryptoJS.AES.encrypt(word(block), word(key), {
+      iv: word(new Array(16).fill(0)), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.NoPadding
+    });
+    return bytes(encrypted.ciphertext).slice(0, 16);
   }
   function xor(a, b) { return a.map(function(v, i) { return v ^ b[i]; }); }
   function multiplyGcm(x, h) {

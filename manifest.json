@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "scrapers": [
     {
       "id": "allanime",
@@ -555,7 +555,7 @@
       "id": "animenosub",
       "name": "AnimeNoSub",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
