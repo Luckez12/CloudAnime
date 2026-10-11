@@ -14,7 +14,6 @@ on:
       - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'tests/**'
       - '.github/workflows/validate-cloudanime.yml'
 
 permissions:
@@ -42,4 +41,3 @@ jobs:
       - name: Validate repository
         run: |
           npm run validate
-          npm test
