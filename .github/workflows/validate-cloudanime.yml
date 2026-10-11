@@ -13,6 +13,8 @@ on:
       - 'providers/**'
       - 'scripts/**'
       - 'package.json'
+      - 'package-lock.json'
+      - 'tests/**'
       - '.github/workflows/validate-cloudanime.yml'
 
 permissions:
@@ -34,5 +36,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      - name: Install validation dependencies
+        run: npm ci --ignore-scripts
       - name: Validate repository
-        run: npm run validate
+        run: |
+          npm run validate
+          npm test
