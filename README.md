@@ -1,34 +1,33 @@
 # CloudAnime
 
-Repo provider anime untuk VUEO/Nuvio. Setup awal ini belum mengandungi provider.
+Repo provider anime untuk VUEO/Nuvio: audio Jepun + sub sahaja, tiada dub.
 
-## Skop
+Manifest: https://raw.githubusercontent.com/Luckez12/CloudAnime/main/manifest.json
 
-- Anime dengan audio Jepun sahaja; tiada dub.
-- Sari kata English, Malay atau Indonesian apabila tersedia.
-- Setiap provider baharu perlu diuji untuk padanan tajuk, musim, episod dan playback.
+## Migrasi v1.1.0
 
-## Manifest
+16 provider khusus anime disalin dari Cloudbank v1.20.11. Cloudbank tidak diubah.
+Mapping TMDB, musim/episod, extractor, header, timeout dan format paparan PlayIMDb sedia ada dikekalkan.
 
-Untuk repo `kurato-svg/CloudAnime` pada branch `main`:
+Hasil ditapis sebelum format paparan: dub, dual/multi audio dan audio yang tidak dapat dikenal pasti dikecualikan.
+HiAnime dipaksa menggunakan sub; Reanime hanya meminta laluan sub.
+Provider lain mungkin masih meminta sub/dub upstream tetapi hanya hasil sub/audio Jepun yang dikenal pasti boleh dipaparkan.
+Sari kata luaran ditapis kepada English, Malay dan Indo. Hardsub sedia ada tidak boleh diubah atau ditapis melalui senarai sari kata.
 
-`https://raw.githubusercontent.com/kurato-svg/CloudAnime/main/manifest.json`
-
-Manifest kosong adalah disengajakan; belum ada sumber untuk dimainkan.
-
-## Struktur
-
-- `manifest.json`: senarai provider.
-- `providers/`: fail JavaScript provider.
-- `scripts/validate.mjs`: semakan manifest dan sintaks provider.
+Ini boleh mengurangkan link daripada provider yang tidak melabel audio. Label sub upstream bukan pemeriksaan track audio video.
+Sintaks, pemuatan modul, filter dan struktur diuji; playback sebenar belum diuji dalam VUEO.
 
 ## Workflow
 
-Fail `apply-zip-patch.yml` diberikan berasingan dan diletakkan di
-`.github/workflows/apply-zip-patch.yml`.
-Workflow menerima satu ZIP pada branch `main`, mengekstrak ke root,
-menjalankan validation, kemudian commit perubahan dan membuang ZIP yang sudah diproses.
-Untuk run manual, isi `zip_file` jika terdapat lebih daripada satu ZIP.
-GitHub Actions memerlukan kebenaran menulis kandungan repository.
+`.github/workflows/apply-zip-patch.yml` mengurus ekstrak ZIP dan commit.
+`.github/workflows/validate-cloudanime.yml` menjalankan validation selepas apply berjaya.
+YML dikekalkan berasingan; patch provider tidak mengandungi YML.
 
-Jalankan semakan tempatan dengan `npm run validate`.
+## Semakan
+
+`npm ci --ignore-scripts`, `npm run validate`, `npm test`.
+
+## Attribution
+
+Lihat sourceRepository/sourceCommit dalam manifest dan docs/migration-sources.json.
+Lesen GPL-3.0 upstream disertakan. Komen sumber asal dikekalkan.
