@@ -313,6 +313,26 @@ function cloudAnimeFilterStreams(streams, providerId) {
       log('SERVERS', embeds.length + ' sub servers');
       await Promise.all(embeds.slice(0, 6).map(async function(embed) {
         try {
+          // AnimeNoSub direct.php is a wrapper, not the final video host.
+          // Read its iframe/encoded URL without evaluating website JavaScript.
+          var embedUrl = embed.url, embedReferer = epUrl, wrapperSeen = Object.create(null);
+          for (var hop = 0; hop < 2 && new URL(embedUrl).origin === BASE; hop++) {
+            var wrapper = new URL(embedUrl);
+            if (wrapper.pathname !== '/direct.php' || !/\/sub(?:[&#]|$)/i.test(wrapper.search) || wrapperSeen[embedUrl]) {
+              log('SERVER', 'Invalid or repeated Sub wrapper: ' + wrapper.pathname); return;
+            }
+            wrapperSeen[embedUrl] = true;
+            var wrapperHtml = await text(embedUrl, { headers: { Referer: embedReferer } });
+            var next = http(cheerio.load(wrapperHtml)('iframe[src]').first().attr('src'), embedUrl);
+            if (!next) {
+              var encoded = /\biframeUrl\s*=\s*decodeUrl\s*\(\s*['"]([A-Za-z0-9+/=]+)['"]\s*\)/.exec(wrapperHtml);
+              if (encoded) next = http(CryptoJS.enc.Latin1.stringify(CryptoJS.enc.Base64.parse(encoded[1].split('').reverse().join(''))), embedUrl);
+            }
+            if (!next || dub(new URL(next).pathname)) { log('SERVER', 'Sub wrapper has no usable player URL'); return; }
+            log('WRAPPER', wrapper.pathname + ' -> ' + new URL(next).hostname + new URL(next).pathname);
+            embedReferer = embedUrl; embedUrl = next;
+          }
+          embed = { url: embedUrl, label: embed.label };
           var u = new URL(embed.url), host = u.hostname, headers = { Referer: u.origin + '/', Origin: u.origin, 'User-Agent': UA };
           var sources = [], tracks = [], server;
           if (/^([a-z0-9-]+\.)?upn\.one$/i.test(host)) {
@@ -332,11 +352,11 @@ function cloudAnimeFilterStreams(streams, providerId) {
             headers.Referer = 'https://vidmoly.biz/'; headers.Origin = 'https://vidmoly.biz';
           } else if (/^megaplay\.[a-z]+$/i.test(host) && /^\/stream\//.test(u.pathname)) {
             server = 'MegaPlay';
-            var html = await text(embed.url), page = cheerio.load(html), fileId = page('[data-id]').first().attr('data-id');
+            var html = await text(embed.url, { headers: { Referer: embedReferer } }), page = cheerio.load(html), fileId = page('[data-id]').first().attr('data-id');
             if (!fileId || !/^[a-z0-9_-]+$/i.test(fileId)) { log('MegaPlay', 'Player unavailable'); return; }
             var payload = await json(u.origin + '/stream/getSources?id=' + encodeURIComponent(fileId) + '&id=' + encodeURIComponent(fileId), {
               headers: { Referer: embed.url, 'X-Requested-With': 'XMLHttpRequest' } });
-            if (payload.encrypted || payload.enc) { log('MegaPlay', 'Encrypted response unsupported in v1'); return; }
+            if (payload.encrypted || payload.enc) { log('MegaPlay', 'Encrypted source response (enc/encrypted); MegaPlay decoding required'); return; }
             sources = Array.isArray(payload.sources) ? payload.sources : payload.sources && payload.sources.file ? [payload.sources] : [];
             tracks = Array.isArray(payload.tracks) ? payload.tracks.filter(function(t) { return /^(captions|subtitles)$/.test(t.kind); }).map(function(t) {
               return { url: http(t.file, embed.url), language: t.srclang || t.language || '', label: t.label || '' };
