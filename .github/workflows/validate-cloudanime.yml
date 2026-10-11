@@ -1,0 +1,38 @@
+name: Validate CloudAnime
+
+on:
+  workflow_run:
+    workflows: ["Apply CloudAnime ZIP Patch"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'manifest.json'
+      - 'providers/**'
+      - 'scripts/**'
+      - 'package.json'
+      - '.github/workflows/validate-cloudanime.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudanime-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate repository
+        run: npm run validate

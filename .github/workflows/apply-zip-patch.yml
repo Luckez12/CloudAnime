@@ -156,16 +156,6 @@ jobs:
           if __name__ == '__main__':
               main()
           PY
-      - name: Set up Node.js
-        if: steps.patch.outputs.found == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Validate applied repository
-        if: steps.patch.outputs.found == 'true'
-        run: |
-          set -euo pipefail
-          npm run validate
       - name: Commit applied patch
         if: steps.patch.outputs.found == 'true'
         run: |
