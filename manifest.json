@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "scrapers": [
     {
       "id": "allanime",
@@ -555,7 +555,7 @@
       "id": "animenosub",
       "name": "AnimeNoSub",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -575,7 +575,7 @@
         "cheerio-without-node-native",
         "crypto-js"
       ],
-      "notes": "Direct website provider. Exact AniList/MAL title matching and verified season/episode mapping. Excludes dub, RAW, unknown search labels and non-JP catalog entries. Nova, Vidmoly and unencrypted MegaPlay supported; unsupported/encrypted hosts omitted. HLS header validation is not full playback or audio probing. Resolves verified Sub direct.php wrappers, including reversed Base64 iframeUrl; preserves wrapper Referer for MegaPlay. Encrypted MegaPlay enc responses remain unsupported and are logged explicitly."
+      "notes": "Direct website provider. Exact AniList/MAL title matching and verified season/episode mapping. Excludes dub, RAW, unknown search labels and non-JP catalog entries. Nova, Vidmoly and unencrypted MegaPlay supported; unsupported/encrypted hosts omitted. HLS header validation is not full playback or audio probing. Resolves verified Sub direct.php wrappers, including reversed Base64 iframeUrl; preserves wrapper Referer for MegaPlay. Encrypted MegaPlay enc responses remain unsupported and are logged explicitly. Server names no longer require a Sub keyword; explicit Dub labels and paths remain excluded."
     }
   ]
 }

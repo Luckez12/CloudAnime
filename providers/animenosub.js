@@ -302,7 +302,7 @@ function cloudAnimeFilterStreams(streams, providerId) {
       var embeds = [], embedSeen = Object.create(null);
       $ep('select option[data-index]').each(function(_, element) {
         var option = $ep(element), label = option.text().trim();
-        if (dub(label) || !/\bsub\b/i.test(label)) return;
+        if (dub(label)) return;
         try {
           var html = CryptoJS.enc.Latin1.stringify(CryptoJS.enc.Base64.parse(option.attr('value') || ''));
           var frame = cheerio.load(html)('iframe').attr('src'), url = http(frame, epUrl);
