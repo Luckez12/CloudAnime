@@ -1,4 +1,4 @@
-/* CloudAnime AnimeNoSub v1.0.0 — standalone runtime provider. */
+/* CloudAnime AnimeNoSub v1.1.0 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -239,11 +239,137 @@ function cloudAnimeFilterStreams(streams, providerId) {
       } finally { clearTimeout(timer); }
     };
   }
+  // Data-only decoding: never evaluate downloaded player JavaScript.
+  function b64word(value) {
+    var s = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    return CryptoJS.enc.Base64.parse(s);
+  }
+  function bytes(word) {
+    var out = [];
+    for (var i = 0; i < word.sigBytes; i++) out.push((word.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 255);
+    return out;
+  }
+  function word(data) {
+    var w = [];
+    for (var i = 0; i < data.length; i++) w[i >>> 2] = (w[i >>> 2] || 0) | data[i] << (24 - (i % 4) * 8);
+    return CryptoJS.lib.WordArray.create(w, data.length);
+  }
+  function aesBlock(block, key) {
+    return bytes(CryptoJS.AES.encrypt(word(block), word(key), { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.NoPadding }).ciphertext);
+  }
+  function xor(a, b) { return a.map(function(v, i) { return v ^ b[i]; }); }
+  function multiplyGcm(x, h) {
+    var z = new Array(16).fill(0), v = h.slice();
+    for (var bit = 0; bit < 128; bit++) {
+      if (x[bit >>> 3] & (128 >>> (bit % 8))) z = xor(z, v);
+      var last = v[15] & 1;
+      for (var j = 15; j > 0; j--) v[j] = (v[j] >>> 1) | ((v[j - 1] & 1) << 7);
+      v[0] >>>= 1; if (last) v[0] ^= 225;
+    }
+    return z;
+  }
+  function gcmDecrypt(key, iv, payload) {
+    if (![16, 24, 32].includes(key.length) || iv.length !== 12 || payload.length < 16 || payload.length > 1048576) throw new Error('Invalid AES-GCM payload');
+    var cipher = payload.slice(0, -16), tag = payload.slice(-16), zero = new Array(16).fill(0);
+    var h = aesBlock(zero, key), y = zero.slice(), j0 = iv.concat([0, 0, 0, 1]);
+    for (var i = 0; i < cipher.length; i += 16) {
+      var block = cipher.slice(i, i + 16); while (block.length < 16) block.push(0);
+      y = multiplyGcm(xor(y, block), h);
+    }
+    var length = zero.slice(), bits = cipher.length * 8;
+    for (var k = 15; k >= 8; k--) { length[k] = bits % 256; bits = Math.floor(bits / 256); }
+    var expected = xor(multiplyGcm(xor(y, length), h), aesBlock(j0, key)), diff = 0;
+    for (var t = 0; t < 16; t++) diff |= tag[t] ^ expected[t];
+    if (diff) throw new Error('AES-GCM authentication failed');
+    var counter = j0.slice(), plain = [];
+    for (var offset = 0; offset < cipher.length; offset += 16) {
+      for (var c = 15; c >= 12; c--) { counter[c] = (counter[c] + 1) & 255; if (counter[c]) break; }
+      var mask = aesBlock(counter, key);
+      for (var p = 0; p < 16 && offset + p < cipher.length; p++) plain.push(cipher[offset + p] ^ mask[p]);
+    }
+    return CryptoJS.enc.Utf8.stringify(word(plain));
+  }
+  function decodeByse(playback) {
+    if (!playback || !Array.isArray(playback.key_parts)) throw new Error('Byse playback data missing');
+    var parts = playback.key_parts, version = String(playback.version || '').trim(), n = Number(version);
+    // Current Byse player selects complementary parts from the 30-part table.
+    if (/^\d+$/.test(version) && n >= 1 && n <= 20 && n <= parts.length && 31 - n <= parts.length) parts = [parts[n - 1], parts[30 - n]];
+    var key = [];
+    parts.forEach(function(p) { key = key.concat(bytes(b64word(p))); });
+    return JSON.parse(gcmDecrypt(key, bytes(b64word(playback.iv)), bytes(b64word(playback.payload))));
+  }
+  function decodeMega(payload) {
+    var key = bytes(CryptoJS.enc.Utf8.parse('i?LMTAx0Q6,:}50U'));
+    while (key.length < 32) key.push(0);
+    var plain = CryptoJS.AES.decrypt({ ciphertext: b64word(payload.enc) }, word(key), {
+      iv: CryptoJS.enc.Utf8.parse("W0;27ToaUpl_P%'c"), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+    var source = JSON.parse(plain.toString(CryptoJS.enc.Utf8));
+    if (!source || typeof source.file !== 'string') throw new Error('MegaPlay decrypted source missing');
+    var path = /\/([a-f0-9]{32})\/([a-f0-9]{32})\//i.exec(source.file);
+    if (path && !/[?&]token=/.test(source.file)) {
+      var message = (Math.floor(Date.now() / 1000) + 90) + '|' + path[1].toLowerCase() + '/' + path[2].toLowerCase();
+      function url64(w) { return CryptoJS.enc.Base64.stringify(w).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, ''); }
+      var token = url64(CryptoJS.enc.Utf8.parse(message)) + '.' + url64(CryptoJS.HmacSHA256(message, 'MpCdnT0k3n!9f2K#xQ7vL5mR8wN1pY4s'));
+      source.file += (source.file.indexOf('?') < 0 ? '?' : '&') + 'token=' + encodeURIComponent(token);
+    }
+    return source;
+  }
+  function jsString(value) {
+    return value.replace(/\\x([0-9a-f]{2})/gi, function(_, h) { return String.fromCharCode(parseInt(h, 16)); })
+      .replace(/\\u([0-9a-f]{4})/gi, function(_, h) { return String.fromCharCode(parseInt(h, 16)); })
+      .replace(/\\([\\/'"])/g, '$1').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+  }
+  function unpackPlayer(html) {
+    var result = String(html), pattern = /\}\s*\(\s*(['"])((?:\\.|(?!\1)[\s\S])*)\1\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(['"])((?:\\.|(?!\5)[\s\S])*)\5\.split\(\s*['"]\|['"]\s*\)/g;
+    for (var pass = 0; pass < 3; pass++) {
+      var found = false, extra = [], match; pattern.lastIndex = 0;
+      while ((match = pattern.exec(result))) {
+        var radix = Number(match[3]), count = Number(match[4]), symbols = jsString(match[6]).split('|');
+        if (radix < 2 || radix > 62 || count > 20000 || match[2].length > 1048576) continue;
+        var alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        function code(n) { return n < radix ? alphabet[n] : code(Math.floor(n / radix)) + alphabet[n % radix]; }
+        var map = Object.create(null);
+        for (var i = 0; i < count; i++) if (symbols[i]) map[code(i)] = symbols[i];
+        extra.push(jsString(match[2]).replace(/\b[0-9A-Za-z]+\b/g, function(k) { return map[k] || k; })); found = true;
+      }
+      if (!found) break;
+      result = extra.join('\n');
+    }
+    return html + '\n' + result;
+  }
+  function jwData(html, base) {
+    var script = unpackPlayer(html), sources = [], tracks = [], seen = Object.create(null), match;
+    var arrays = /(?:sources|playlist|links)\s*[:=]\s*\[([\s\S]*?)\]/g;
+    while ((match = arrays.exec(script))) {
+      var objects = match[1].match(/\{[^{}]*\}/g) || [];
+      objects.forEach(function(object) {
+        var f = /(?:["']?(?:file|src|url)["']?)\s*:\s*(['"])((?:\\.|(?!\1)[\s\S])*)\1/.exec(object);
+        if (!f) return;
+        var url = http(jsString(f[2]), base), label = /label\s*:\s*['"]([^'"]+)['"]/.exec(object);
+        if (!/\.m3u8(?:[?#]|$)/i.test(url) || seen[url]) return;
+        seen[url] = true; sources.push({ file: url, label: label ? label[1] : '' });
+      });
+    }
+    // StreamWish mirrors can expose HLS through the links.hls2/hls4 fields.
+    var links = /["']hls[24]["']\s*:\s*(['"])((?:\\.|(?!\1)[\s\S])*)\1/g;
+    while ((match = links.exec(script))) {
+      var url = http(jsString(match[2]), base);
+      if (/\.m3u8(?:[?#]|$)/i.test(url) && !seen[url]) { seen[url] = true; sources.push({ file: url, label: '' }); }
+    }
+    var trackObjects = script.match(/\{[^{}]*kind\s*:\s*['"](?:captions|subtitles)['"][^{}]*\}/g) || [];
+    trackObjects.forEach(function(object) {
+      var f = /file\s*:\s*(['"])((?:\\.|(?!\1)[\s\S])*)\1/.exec(object), l = /label\s*:\s*['"]([^'"]+)['"]/.exec(object);
+      if (f) tracks.push({ url: http(jsString(f[2]), base), label: l ? l[1] : '', language: '' });
+    });
+    return { sources: sources, tracks: tracks };
+  }
+
   async function getStreams(id, type, season, episode) {
     type = type === 'series' ? 'tv' : type;
     if (!['movie', 'tv'].includes(type) || !/^(?:tt\d+|\d+)$/.test(String(id))) return [];
     if (type === 'tv' && (!Number.isInteger(Number(season)) || Number(season) < 0 || !Number.isInteger(Number(episode)) || Number(episode) < 1)) return [];
-    var deadline = Date.now() + 28500, streams = [], closed = false, timer;
+    var deadline = Date.now() + 18500, streams = [], closed = false, timer;
     var req = requestScope(deadline), mapping = cloudbankAnimeMappingFetch(req);
     async function text(url, options) { return (await req(url, options)).text(); }
     async function json(url, options) { return (await req(url, options)).json(); }
@@ -354,29 +480,68 @@ function cloudAnimeFilterStreams(streams, providerId) {
             server = 'MegaPlay';
             var html = await text(embed.url, { headers: { Referer: embedReferer } }), page = cheerio.load(html), fileId = page('[data-id]').first().attr('data-id');
             if (!fileId || !/^[a-z0-9_-]+$/i.test(fileId)) { log('MegaPlay', 'Player unavailable'); return; }
-            var payload = await json(u.origin + '/stream/getSources?id=' + encodeURIComponent(fileId) + '&id=' + encodeURIComponent(fileId), {
+            var payload = await json(u.origin + '/stream/getSources?id=' + encodeURIComponent(fileId) + '&platform=OTHER', {
               headers: { Referer: embed.url, 'X-Requested-With': 'XMLHttpRequest' } });
-            if (payload.encrypted || payload.enc) { log('MegaPlay', 'Encrypted source response (enc/encrypted); MegaPlay decoding required'); return; }
-            sources = Array.isArray(payload.sources) ? payload.sources : payload.sources && payload.sources.file ? [payload.sources] : [];
+            if (payload.enc) { sources = [decodeMega(payload)]; log('MegaPlay', 'AES-CBC source decoded'); }
+            else if (payload.encrypted) { throw new Error('Unknown MegaPlay encrypted format'); }
+            else sources = Array.isArray(payload.sources) ? payload.sources : payload.sources && payload.sources.file ? [payload.sources] : [];
             tracks = Array.isArray(payload.tracks) ? payload.tracks.filter(function(t) { return /^(captions|subtitles)$/.test(t.kind); }).map(function(t) {
               return { url: http(t.file, embed.url), language: t.srclang || t.language || '', label: t.label || '' };
             }) : [];
+          } else if (/^(?:www\.)?(?:vtbe|vtube|vtplay)\.(?:to|net|network)$/i.test(host) || /^(?:vtube|vtbe)$/i.test(embed.label)) {
+            server = 'Vtube';
+            var html = await text(embed.url, { headers: { Referer: u.origin + '/' } });
+            var player = jwData(html, embed.url); sources = player.sources; tracks = player.tracks;
+          } else if (/filemoon|filesim|bysesayeveum|byse\./i.test(host) || /filemoon/i.test(embed.label)) {
+            server = 'FileMoon';
+            var html = await text(embed.url, { headers: { Referer: embedReferer } });
+            if (/Byse Frontend|videoPagesBundle|id=["']root["']/.test(html)) {
+              var code = /^\/(?:e|d)\/([a-z0-9]+)\/?$/i.exec(u.pathname);
+              if (!code) throw new Error('Byse video code missing');
+              var meta = await json(u.origin + '/api/videos/' + encodeURIComponent(code[1]) + '/', {
+                headers: { Referer: embed.url, 'X-Requested-With': 'XMLHttpRequest' } });
+              if (meta.error || !meta.playback) throw new Error('Byse playback unavailable');
+              var decoded = decodeByse(meta.playback);
+              sources = Array.isArray(decoded.sources) ? decoded.sources.map(function(s) { return { file: s.url || s.file, label: s.label || (s.height ? s.height + 'p' : '') }; }) : [];
+              tracks = (Array.isArray(decoded.tracks) ? decoded.tracks : []).map(function(t) { return { url: http(t.url || t.file, embed.url), language: t.language || t.srclang || '', label: t.label || '' }; });
+              log('FileMoon', 'Byse AES-GCM decoded: ' + sources.length + ' sources');
+            } else {
+              var child = http(cheerio.load(html)('iframe[src]').first().attr('src'), embed.url);
+              if (child && child !== embed.url && !dub(new URL(child).pathname)) {
+                html = await text(child, { headers: { Referer: embed.url } });
+                var childOrigin = new URL(child).origin; headers.Referer = childOrigin + '/'; headers.Origin = childOrigin;
+              }
+              var player = jwData(html, child || embed.url); sources = player.sources; tracks = player.tracks;
+            }
+          } else if (/streamwish|sfastwish|flaswish|embedwish|hlswish/i.test(host) || /streamwish/i.test(embed.label)) {
+            server = 'StreamWish';
+            var html = await text(embed.url, { headers: { Referer: embedReferer } });
+            if (/file is no longer available|file (?:was |has been )?deleted|file not found/i.test(html)) throw new Error('Upstream file deleted or expired');
+            var player = jwData(html, embed.url); sources = player.sources; tracks = player.tracks;
           } else { log('SERVER', 'Unsupported host: ' + host); return; }
+          if (!sources.length) { log(server, 'Player parsed but no HLS sources found'); return; }
+
           var valid = sources.map(function(source) { return { url: http(source.file || source.url, embed.url), label: source.label || '' }; }).filter(function(source) { return /\.m3u8(?:[?#]|$)/i.test(source.url); });
           // Return each server's master first. Keep the original media headers and do not emit embed pages.
-          var resolved = await Promise.all(valid.map(async function(source) {
+          var resolved = [], rejectedAudio = false;
+          valid.sort(function(a, b) { return Number(/master\.m3u8/i.test(b.url)) - Number(/master\.m3u8/i.test(a.url)); });
+          for (var sourceIndex = 0; sourceIndex < valid.length; sourceIndex++) {
+            if (closed) break;
+            var source = valid[sourceIndex];
             try {
               var manifest = await text(source.url, { headers: headers });
-              if (!/^\s*#EXTM3U/.test(manifest)) return null;
-              // An explicitly foreign/multiple audio group is rejected even on a Sub server.
+              if (!/^\s*#EXTM3U/.test(manifest)) { log(server, 'Source returned non-HLS content'); continue; }
               var audio = manifest.split(/\r?\n/).filter(function(line) { return /^#EXT-X-MEDIA:.*TYPE=AUDIO/.test(line); });
-              if (audio.some(function(line) { var lang = /LANGUAGE="([^"]+)"/.exec(line); return !lang || !/^(ja|jp|jpn)$/i.test(lang[1]); })) return { rejectedAudio: true };
-              return { source: source, master: /#EXT-X-STREAM-INF:/.test(manifest) };
-            } catch (e) { log(server, e.message); return null; }
-          }));
-          if (resolved.some(function(item) { return item && item.rejectedAudio; })) { log(server, 'Foreign or unidentified audio group; skipped server'); return; }
-          resolved = resolved.filter(Boolean);
-          if (resolved.some(function(item) { return item.master; })) resolved = resolved.filter(function(item) { return item.master; });
+              if (audio.some(function(line) { var lang = /LANGUAGE="([^"]+)"/.exec(line); return !lang || !/^(ja|jp|jpn)$/i.test(lang[1]); })) {
+                rejectedAudio = true; break;
+              }
+              var item = { source: source, master: /#EXT-X-STREAM-INF:/.test(manifest) };
+              if (item.master) { resolved = [item]; log(server, 'Master HLS validated'); break; }
+              resolved.push(item);
+            } catch (e) { log(server, e.message); }
+          }
+          if (rejectedAudio) { log(server, 'Foreign or unidentified audio group; skipped server'); return; }
+          if (!resolved.length) log(server, 'No validated HLS sources');
           resolved.forEach(function(item) {
             if (closed || streams.some(function(s) { return s.url === item.source.url && s.server === server; })) return;
             var quality = item.master ? 'Auto' : /^\d{3,4}p$/.test(item.source.label) ? item.source.label : 'Unknown';
@@ -384,11 +549,11 @@ function cloudAnimeFilterStreams(streams, providerId) {
               url: item.source.url, quality: quality, type: 'hls', audioLanguage: 'ja', audioType: 'sub', server: server,
               headers: headers, subtitles: tracks });
           });
-        } catch (e) { log('SERVER', e.message); }
+        } catch (e) { log('SERVER', (server || embed.label || 'Unknown') + ': ' + e.message); }
       }));
     }
     try {
-      await Promise.race([work().catch(function(e) { log('ERROR', e.message); }), new Promise(function(resolve) { timer = setTimeout(resolve, 28500); })]);
+      await Promise.race([work().catch(function(e) { log('ERROR', e.message); }), new Promise(function(resolve) { timer = setTimeout(resolve, 18500); })]);
     } finally { closed = true; clearTimeout(timer); }
     log('RESULT', streams.length + ' validated sub streams');
     return cloudAnimeFilterStreams(streams, 'animenosub');
