@@ -1,11 +1,11 @@
 {
   "name": "CloudAnime",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scrapers": [
     {
       "id": "allanime",
       "name": "AllAnime",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "D3adlyRocket / upstream contributors",
       "supportedTypes": [
@@ -41,7 +41,7 @@
     {
       "id": "animekai",
       "name": "AnimeKai",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -74,7 +74,7 @@
     {
       "id": "anizone",
       "name": "AniZone",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.8",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -107,7 +107,7 @@
     {
       "id": "anikototv",
       "name": "AnikotoTV",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.11",
       "author": "piratezoro9",
       "supportedTypes": [
@@ -140,7 +140,7 @@
     {
       "id": "anidb",
       "name": "AniDB",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "Nuvio Team (ChillPill)",
       "supportedTypes": [
@@ -176,7 +176,7 @@
     {
       "id": "animepahe",
       "name": "AnimePahe",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.8",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -211,7 +211,7 @@
     {
       "id": "animesalt",
       "name": "AnimeSalt",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -249,7 +249,7 @@
     {
       "id": "animedekho",
       "name": "AnimeDekho",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -284,7 +284,7 @@
     {
       "id": "animetsu",
       "name": "Animetsu",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "piratezoro9",
       "supportedTypes": [
@@ -317,7 +317,7 @@
     {
       "id": "animeworld",
       "name": "AnimeWorld",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "piratezoro9",
       "supportedTypes": [
@@ -350,7 +350,7 @@
     {
       "id": "anime-sama",
       "name": "Anime-Sama",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.1.32",
       "author": "Gowaru",
       "supportedTypes": [
@@ -382,7 +382,7 @@
     {
       "id": "animezey",
       "name": "AnimeZeY",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -416,7 +416,7 @@
     {
       "id": "hianime",
       "name": "HiAnime",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.7",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -450,7 +450,7 @@
     {
       "id": "kurage",
       "name": "Kurage",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.6",
       "author": "Paregi12",
       "supportedTypes": [
@@ -487,7 +487,7 @@
     {
       "id": "reanime",
       "name": "Reanime",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.5",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -521,7 +521,7 @@
     {
       "id": "vidnest-anime",
       "name": "VidnestAnime",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
+      "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
       "version": "1.0.4",
       "author": "Nuvio Team",
       "supportedTypes": [
@@ -550,6 +550,32 @@
         "tv"
       ],
       "runtimeModules": []
+    },
+    {
+      "id": "animenosub",
+      "name": "AnimeNoSub",
+      "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
+      "version": "1.0.0",
+      "author": "CloudAnime",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/animenosub.js",
+      "enabled": true,
+      "hasSettings": false,
+      "formats": [
+        "m3u8"
+      ],
+      "contentLanguage": [
+        "ja"
+      ],
+      "runtimeTimeoutMs": 30000,
+      "runtimeModules": [
+        "cheerio-without-node-native",
+        "crypto-js"
+      ],
+      "notes": "Direct website provider. Exact AniList/MAL title matching and verified season/episode mapping. Excludes dub, RAW, unknown search labels and non-JP catalog entries. Nova, Vidmoly and unencrypted MegaPlay supported; unsupported/encrypted hosts omitted. HLS header validation is not full playback or audio probing."
     }
   ]
 }
