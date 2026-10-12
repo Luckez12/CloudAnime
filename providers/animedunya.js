@@ -1,4 +1,4 @@
-/* CloudAnime AnimeDunya v1.0.0 — standalone runtime provider. */
+/* CloudAnime AnimeDunya v1.0.1 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -304,15 +304,17 @@ function cloudAnimeFilterStreams(streams, providerId) {
       }).filter(function(t) { return t.url && t.label; });
       var seen = Object.create(null);
       candidates = candidates.filter(function(t) { if (seen[t.url]) return false; seen[t.url] = true; return true; }).slice(0, 12);
-      var subtitles = (await Promise.all(candidates.map(async function(track) {
-        try {
-          var content = await text(track.url, { headers: headers });
-          if (!/^\s*\uFEFF?WEBVTT(?:\s|$)/.test(content) || !/\d{2}:\d{2}\.\d{3}\s*-->/.test(content)) { log('SUBTITLE', track.label + ': invalid or empty VTT'); return null; }
-          return { url: track.url, name: track.label, language: track.label === 'English' ? 'en' : track.label === 'Malay' ? 'ms' : 'id', headers: headers };
-        } catch (e) { log('SUBTITLE', track.label + ': ' + e.message); return null; }
-      }))).filter(Boolean);
+      // The player owns subtitle loading. A preflight fetch can fail independently
+      // of playback (timeouts, runtime headers, or CDN limits); retain published URLs.
+      var subtitles = candidates.map(function(track, index) {
+        var lang = track.label === 'English' ? 'en' : track.label === 'Malay' ? 'ms' : 'id';
+        return { id: 'animedunya-' + lang + '-' + index, url: track.url,
+          name: track.label, label: track.label, language: lang, lang: lang,
+          srclang: lang, type: 'vtt', format: 'vtt', mimeType: 'text/vtt',
+          default: lang === 'en', headers: headers };
+      });
       if (closed) return;
-      log('SUBTITLE', subtitles.length + ' validated English/Malay/Indo tracks');
+      log('SUBTITLE', subtitles.length + ' published English/Malay/Indo tracks (loaded by player)');
       streams.push({ name: 'AnimeDunya · ' + (master ? 'Auto' : 'Unknown'), title: player.animeTitle + '\nJapanese Audio · Sub',
         url: source, quality: master ? 'Auto' : 'Unknown', type: 'hls', server: 'AnimeDunya', audioLanguage: 'ja', audioType: 'sub', headers: headers, subtitles: subtitles });
     }
