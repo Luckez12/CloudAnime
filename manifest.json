@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "scrapers": [
     {
       "id": "allanime",
@@ -604,7 +604,7 @@
       "id": "animeonsen",
       "name": "AnimeOnsen",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 DASH + English, Malay and Indo subtitles",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -621,7 +621,7 @@
       ],
       "runtimeTimeoutMs": 30000,
       "runtimeModules": [],
-      "notes": "Direct www.animeonsen.xyz anonymous-session API adapter. Strict date-based TMDB-to-MAL episode mapping, Japanese AniList identity, exact upstream metadata MAL match, verified episode key and MPD; rejects foreign labelled audio and DRM. Preserves published subtitle URLs and per-track Authorization headers. No fuzzy identity fallback, no dub requests. Live homepage returned Cloudflare 403 in build environment; end-to-end live playback remains unverified. Session bootstrap fields and endpoint schema adapted from Anivexa-API reference fetched 2026-10-12."
+      "notes": "Direct www.animeonsen.xyz anonymous-session API adapter. Strict date-based TMDB-to-MAL episode mapping, Japanese AniList identity, exact upstream metadata MAL match, verified episode key and MPD; rejects foreign labelled audio and DRM. Preserves published subtitle URLs and per-track Authorization headers. No fuzzy identity fallback, no dub requests. Live homepage returned Cloudflare 403 in build environment; end-to-end live playback remains unverified. Session bootstrap fields and endpoint schema adapted from Anivexa-API reference fetched 2026-10-12. v1.0.1: declares ASS MIME text/x-ssa for native extensionless subtitle endpoints, preserving WebVTT/SubRip/TTML for explicitly suffixed URLs. Fixes missing format metadata which made the player default to SubRip. Runtime logs subtitle format without URLs/tokens. Live on-device rendering remains to be verified."
     }
   ]
 }

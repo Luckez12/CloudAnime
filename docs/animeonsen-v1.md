@@ -21,3 +21,13 @@ Validation: all 19 providers pass manifest/syntax validation. Runtime fixture te
 Live limitation: homepage requests from this build environment returned HTTP 403 with a Cloudflare browser challenge. API schema, signed CDN URLs, audio and playback have not been validated end-to-end live. This is a provider to test on-device, not a confirmed-working playback claim. No challenge bypass is included.
 
 Apply this ZIP to CloudAnime. It includes manifest.json and providers/animeonsen.js at repository-root paths, plus this note. No workflows, app code or changes to other provider files are included. The manifest retains the earlier AnimeDunya v1.0.1 registration.
+
+## v1.0.1 subtitle MIME fix
+
+User evidence: stream subtitle received=1, forwarded=1, configured=1, mime=unknown, with no subtitle cues recorded. This confirms handoff but does not prove token rejection.
+
+The provider now declares `text/x-ssa` for Onsen native ASS sidecars, including the extensionless `/v4/subtitles/<content>/<language>/<episode>` endpoint. Previously no MIME was supplied and the app falls back to SubRip for unknown URL formats. Explicit `.vtt`, `.srt`, `.ttml`/`.xml` URLs retain their respective formats. Authorization headers and stream extraction remain intact. No subtitle preflight blocks playback.
+
+Endpoint/format reference: https://github.com/frostnova721/animestream/blob/master/lib/core/anime/providers/animeonsen.dart (getStreams declares subtitleFormat ASS for the extensionless Onsen API endpoint). This adapter only uses the published endpoint/format convention.
+
+Validation includes positive ASS and VTT metadata cases, permitted-language filtering and header retention. On-device cues after this patch are not yet verified.

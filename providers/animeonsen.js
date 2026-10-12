@@ -1,4 +1,4 @@
-/* CloudAnime AnimeOnsen v1.0.0 — standalone runtime provider. */
+/* CloudAnime AnimeOnsen v1.0.1 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -231,6 +231,15 @@ function cloudAnimeFilterStreams(streams, providerId) {
     if (!out) throw new Error('Empty anonymous session token');
     return out;
   }
+  // Onsen's /v4/subtitles/... endpoint returns ASS without a filename suffix.
+  // An absent MIME makes the app fall back to SubRip, which cannot parse ASS.
+  function subtitleMime(address) {
+    var path = new URL(address).pathname.toLowerCase();
+    if (/\.vtt$/.test(path)) return 'text/vtt';
+    if (/\.srt$/.test(path)) return 'application/x-subrip';
+    if (/\.(ttml|xml)$/.test(path)) return 'application/ttml+xml';
+    return 'text/x-ssa';
+  }
   function requestScope(deadline) {
     return async function(address, options) {
       var left=Math.min(7000,deadline-Date.now()); if(left<=0)throw new Error('Request budget finished');
@@ -314,10 +323,10 @@ function cloudAnimeFilterStreams(streams, providerId) {
       if(audio.some(function(tag){var audioTag=attr(tag,'contentType')==='audio'||/^audio\//.test(attr(tag,'mimeType'));var lang=attr(tag,'lang');return audioTag&&lang&&!/^(ja|jp|jpn)(?:-|$)/i.test(lang);})) {log('AUDIO','Non-Japanese audio manifest');return;}
       var subs=video.uri&&video.uri.subtitles||{},labels=video.metadata.subtitles||{},subtitles=[];
       Object.keys(subs).forEach(function(code){var name=cloudAnimeSubtitleLanguage({language:code,label:labels[code]}),address=url(subs[code],source);if(!name||!address)return;
-        var lang=name==='English'?'en':name==='Malay'?'ms':'id';subtitles.push({id:'animeonsen-'+lang,url:address,name:name,label:name,language:lang,lang:lang,srclang:lang,headers:headers});});
+        var lang=name==='English'?'en':name==='Malay'?'ms':'id',mime=subtitleMime(address);subtitles.push({id:'animeonsen-'+lang,url:address,name:name,label:name,language:lang,lang:lang,srclang:lang,mimeType:mime,headers:headers});});
       subtitles=subtitles.filter(function(t,i){return subtitles.findIndex(function(x){return x.url===t.url;})===i;});
       if(closed)return;
-      log('DASH','MPD validated; exact MAL '+mapped.mal_id+', episode '+mapped.episode);log('SUBTITLE',subtitles.length+' English/Malay/Indo tracks published');
+      log('DASH','MPD validated; exact MAL '+mapped.mal_id+', episode '+mapped.episode);log('SUBTITLE',subtitles.length+' English/Malay/Indo tracks published');subtitles.forEach(function(t){log('SUBTITLE_FORMAT',t.name+' MIME '+t.mimeType);});
       streams.push({name:'AnimeOnsen',title:chosen.hit.content_title_en||titles[0],url:source,type:'dash',mimeType:'application/dash+xml',quality:'Auto',server:'AnimeOnsen',audioLanguage:'ja',audioType:'sub',headers:headers,subtitles:subtitles});
     }
     try{await Promise.race([work().catch(function(e){log('ERROR',e.message);}),new Promise(function(resolve){timer=setTimeout(resolve,26500);})]);}
