@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "scrapers": [
     {
       "id": "allanime",
@@ -599,6 +599,29 @@
       "runtimeTimeoutMs": 20000,
       "runtimeModules": [],
       "notes": "Direct anime-dunya.com MAL/episode player extraction. Strict existing TMDB season mapping plus Japanese AniList identity. Reads Next.js Flight JSON without executing downloaded scripts, verifies player MAL/episode, validates HLS and available English/Malay/Indo WebVTT tracks. Master HLS priority. No account cookies or API proxy required for publicly returned sources. Live playback in VUEO remains unverified. v1.0.1: preserves published subtitle URLs without blocking VTT preflight; includes name/label and language/lang/srclang metadata. Player loads subtitles using the supplied CDN headers."
+    },
+    {
+      "id": "animeonsen",
+      "name": "AnimeOnsen",
+      "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 DASH + English, Malay and Indo subtitles",
+      "version": "1.0.0",
+      "author": "CloudAnime",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/animeonsen.js",
+      "enabled": true,
+      "hasSettings": false,
+      "formats": [
+        "mpd"
+      ],
+      "contentLanguage": [
+        "ja"
+      ],
+      "runtimeTimeoutMs": 30000,
+      "runtimeModules": [],
+      "notes": "Direct www.animeonsen.xyz anonymous-session API adapter. Strict date-based TMDB-to-MAL episode mapping, Japanese AniList identity, exact upstream metadata MAL match, verified episode key and MPD; rejects foreign labelled audio and DRM. Preserves published subtitle URLs and per-track Authorization headers. No fuzzy identity fallback, no dub requests. Live homepage returned Cloudflare 403 in build environment; end-to-end live playback remains unverified. Session bootstrap fields and endpoint schema adapted from Anivexa-API reference fetched 2026-10-12."
     }
   ]
 }
