@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "scrapers": [
     {
       "id": "allanime",
@@ -622,6 +622,30 @@
       "runtimeTimeoutMs": 30000,
       "runtimeModules": [],
       "notes": "Direct www.animeonsen.xyz anonymous-session API adapter. Strict date-based TMDB-to-MAL episode mapping, Japanese AniList identity, exact upstream metadata MAL match, verified episode key and MPD; rejects foreign labelled audio and DRM. Preserves published subtitle URLs and per-track Authorization headers. No fuzzy identity fallback, no dub requests. Live homepage returned Cloudflare 403 in build environment; end-to-end live playback remains unverified. Session bootstrap fields and endpoint schema adapted from Anivexa-API reference fetched 2026-10-12. v1.0.1: declares ASS MIME text/x-ssa for native extensionless subtitle endpoints, preserving WebVTT/SubRip/TTML for explicitly suffixed URLs. Fixes missing format metadata which made the player default to SubRip. Runtime logs subtitle format without URLs/tokens. Live on-device rendering remains to be verified."
+    },
+    {
+      "id": "animegg",
+      "name": "AnimeGG",
+      "description": "Anime \u00b7 Sub only \u00b7 Direct MP4/HLS \u00b7 Japanese audio",
+      "version": "1.0.0",
+      "author": "CloudAnime",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/animegg.js",
+      "enabled": true,
+      "hasSettings": false,
+      "formats": [
+        "mp4",
+        "m3u8"
+      ],
+      "contentLanguage": [
+        "ja"
+      ],
+      "runtimeTimeoutMs": 25000,
+      "runtimeModules": [],
+      "notes": "Direct www.animegg.org website extractor. Existing verified TMDB-to-MAL episode mapping; conservative exact mapped title/Anime-Planet slug match, site heading and explicit Sub episode/server tabs. No speculative sequel offsets or fuzzy franchise fallback. Parses data literals without eval. Extracts published MP4 URLs without blocking HEAD probes; HLS master priority per embed. English/Malay/Indo sidecars only if returned by player. A sampled Sub episode publishes MP4 sources without external subtitle tracks; hardsub language/audio have not been independently verified. Live in-app playback remains to be tested."
     }
   ]
 }
