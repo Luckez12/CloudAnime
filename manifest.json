@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "scrapers": [
     {
       "id": "allanime",
@@ -646,6 +646,30 @@
       "runtimeTimeoutMs": 25000,
       "runtimeModules": [],
       "notes": "Direct www.animegg.org website extractor. Existing verified TMDB-to-MAL episode mapping; conservative exact mapped title/Anime-Planet slug match, site heading and explicit Sub episode/server tabs. No speculative sequel offsets or fuzzy franchise fallback. Parses data literals without eval. Extracts published MP4 URLs without blocking HEAD probes; HLS master priority per embed. English/Malay/Indo sidecars only if returned by player. A sampled Sub episode publishes MP4 sources without external subtitle tracks; hardsub language/audio have not been independently verified. Live in-app playback remains to be tested. v1.0.1: accepts show-wide ARM mappings; verifies absolute numbering against independent TVDB episode identity and broadcast date, preserves relative season date mapping. Logs absent Sub episodes. No guessed offsets."
+    },
+    {
+      "id": "anipm",
+      "name": "Ani.pm",
+      "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 Softsub/Hardsub HLS",
+      "version": "1.0.0",
+      "author": "CloudAnime",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/anipm.js",
+      "enabled": true,
+      "hasSettings": false,
+      "formats": [
+        "m3u8",
+        "mp4"
+      ],
+      "contentLanguage": [
+        "ja"
+      ],
+      "runtimeTimeoutMs": 30000,
+      "runtimeModules": [],
+      "notes": "Standalone ani.pm API/Settlar extractor. Verified TMDB/IMDb-to-MAL mapping including independently corroborated absolute episodes. Requires exact MAL/AniList search and bootstrap identities, exact episode and effective Sub language/package. Requests only published sub/subhard channels, requires Japanese session audio and rejects foreign/mixed/unverified HLS audio groups. Validates HLS and gives first master priority per channel. External English/Malay/Indo subtitles require recognized actual VTT/ASS/SRT cues with explicit MIME and headers. Live One Piece E1156 soft/hard masters and English VTT retrieved and replay tested; actual in-app video playback remains to be verified. No proxy backend, cookies, runtime imports or dub requests."
     }
   ]
 }
