@@ -1,4 +1,4 @@
-/* CloudAnime Ani.pm v1.0.0 — standalone runtime provider. */
+/* CloudAnime Ani.pm v1.0.1 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -281,8 +281,9 @@ async function getStreams(id,type,season,episode){
   var match=matches[0],channels=['sub'];if(match.pkg.subhard===true)channels.push('subhard');
   log('MATCH','MAL '+mapped.mal_id+', exact episode '+mapped.episode+', '+channels.length+' Sub channels');
   await Promise.all(channels.map(async function(channel){try{
-   var u=new URL('/api/anime/settlar/session',SITE);u.searchParams.set('selection',match.bootstrap.settlarSelection);u.searchParams.set('provider','anipm');u.searchParams.set('ep',String(mapped.episode));u.searchParams.set('channel',channel);u.searchParams.set('telemetry','0');
-   var session=await json(u.href,siteHeaders),embed=address(session.embedUrl||session.url);if(!embed||new URL(embed).origin!==EMBED)throw Error('Unexpected embed origin');
+   // VUEO's URL shim keeps href as a snapshot; searchParams.set does not update it.
+   var sessionUrl=SITE+'/api/anime/settlar/session?selection='+encodeURIComponent(match.bootstrap.settlarSelection)+'&provider=anipm&ep='+encodeURIComponent(String(mapped.episode))+'&channel='+encodeURIComponent(channel)+'&telemetry=0';
+   var session=await json(sessionUrl,siteHeaders),embed=address(session.embedUrl||session.url);if(!embed||new URL(embed).origin!==EMBED)throw Error('Unexpected embed origin');
    var token=new URL(embed).searchParams.get('t');if(!token)throw Error('Missing embed session token');
    var data=await json(EMBED+'/api/embed/session?t='+encodeURIComponent(token),{Referer:embed,Origin:EMBED});
    if(data.provider&&data.provider!=='anipm')throw Error('Unexpected embed provider');

@@ -1,4 +1,4 @@
-# Ani.pm v1.0.0
+# Ani.pm v1.0.1
 
 Standalone CloudAnime provider for https://ani.pm. Apply the ZIP at repository root. No containing CloudAnime-main folder, YML, app changes, external proxy backend, Node globals or runtime imports.
 
@@ -27,3 +27,14 @@ Actual video playback in VUEO, downstream media segments and device subtitle ren
 Reference conventions inspected: https://github.com/walterwhite-69/Anivexa-API/blob/main/providers/anipm.js. Implementation follows the current live API, includes stricter bootstrap checks and Japanese-only audio enforcement, and does not depend on that API service.
 
 Manifest retains AnimeGG v1.0.1, AnimeDunya v1.0.1 and AnimeOnsen v1.0.1. New repository manifest version: 1.7.0.
+
+
+## v1.0.1 — VUEO session URL compatibility fix
+
+VUEO's standalone runtime URL implementation assigns href at construction and keeps searchParams separately. Mutating searchParams does not recompute href. v1.0.0 constructed the session URL with new URL and called searchParams.set, so VUEO sent the bare session endpoint without selection/provider/episode/channel parameters. A live request to that bare endpoint with site headers returns HTTP 400 with error code invalid-settlar-session-request.
+
+The provider now constructs and encodes the complete session query directly as a string. No app files, authentication changes, cache changes or episode mapping changes are required. This defect was missed because the original replay used Node's standard URL implementation. Tests now use a URL shim matching the relevant VUEO implementation and assert every required session parameter is preserved.
+
+The original query-loss behavior was reproduced from the released v1.0.0 ZIP. All 14 previous scenarios now pass under the VUEO-compatible URL shim. A further complete replay using freshly downloaded Black Clover Season 2 responses confirms TMDB73223 S02E01 maps to MAL61967 E1 and yields two Japanese/Sub master HLS sources plus actual English and Indo WebVTT bodies. Live bootstrap/session/embed/playlist/subtitle requests succeeded for this title. All 21 providers pass manifest and syntax checks. Actual on-device playback remains unverified.
+
+Repository manifest version: 1.7.1. Ani.pm provider version: 1.0.1.
