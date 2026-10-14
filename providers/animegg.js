@@ -1,4 +1,4 @@
-/* CloudAnime AnimeGG v1.0.0 — standalone runtime provider. */
+/* CloudAnime AnimeGG v1.0.1 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -50,8 +50,13 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
     rows = rows.filter(function(r) {
       return r && positive(r.myanimelist) && (isImdb ? r.imdb === id : String(r.themoviedb) === id) &&
         (movie ? r.media === "MOVIE" && r["themoviedb-season"] == null :
-          r["themoviedb-season"] != null && Number(r["themoviedb-season"]) === season);
+          r.media !== "MOVIE" && (r["themoviedb-season"] == null || Number(r["themoviedb-season"]) === season));
     });
+    // Prefer explicit season identities; show-wide rows are a separate fallback.
+    if (!movie && rows.some(function(r) { return r["themoviedb-season"] != null; })) {
+      rows = rows.filter(function(r) { return r["themoviedb-season"] != null; });
+    }
+    var showWide = !movie && rows.length > 0 && rows.every(function(r) { return r["themoviedb-season"] == null; });
     var seen = Object.create(null);
     rows = rows.filter(function(r) { var key = r.myanimelist; if (seen[key]) return false; seen[key] = true; return true; });
     if (!rows.length || rows.length > 6) return null;
@@ -77,12 +82,33 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
     function number(v) { return Number(v.episode_number != null ? v.episode_number : v.episode != null ? v.episode : v.number); }
     function seasonOf(v) { return Number(v.season_number != null ? v.season_number : v.season); }
     function released(v) { return day(v.air_date || v.released || v.firstAired); }
+    var datasets = await datasetsPromise;
     var selected = videos.find(function(v) { return seasonOf(v) === season && number(v) === episode; });
+    var mappingMethod = "air-date";
+    // VUEO may send an absolute anime episode alongside a TMDB season (S23 E1156).
+    // Bridge it only through the same show and a unique episode identity/date in
+    // independent episode metadata. Never reinterpret relative episodes as offsets.
+    if (!selected && showWide) {
+      var bridges = [];
+      datasets.forEach(function(data, i) {
+        if (!data || !data.mappings || Number(data.mappings.mal_id) !== Number(rows[i].myanimelist) ||
+            String(data.mappings.themoviedb_id) !== String(tmdbId) || !data.episodes) return;
+        Object.keys(data.episodes).forEach(function(k) {
+          var e = data.episodes[k];
+          if (!e || positive(e.episode) !== episode || positive(e.absoluteEpisodeNumber) !== episode || !positive(e.tvdbId)) return;
+          videos.forEach(function(v) {
+            if (seasonOf(v) === season && positive(v.tvdb_id) === positive(e.tvdbId) &&
+                compatible(day(e.airdate || e.airDate || e.airDateUtc), released(v))) bridges.push(v);
+          });
+        });
+      });
+      if (bridges.length === 1) { selected = bridges[0]; mappingMethod = "absolute-episode+identity+air-date"; }
+    }
     if (!selected || !(target = released(selected))) return null;
     dayIndex = videos.filter(function(v) {
-      return released(v) === target && (seasonOf(v) < season || seasonOf(v) === season && number(v) < episode);
+      return released(v) === target && (seasonOf(v) < seasonOf(selected) || seasonOf(v) === seasonOf(selected) && number(v) < number(selected));
     }).length;
-    var datasets = await datasetsPromise, matches = [];
+    var matches = [];
     datasets.forEach(function(data, i) {
       if (!data || !data.mappings || Number(data.mappings.mal_id) !== Number(rows[i].myanimelist) || !data.episodes) return;
       var list = Object.keys(data.episodes).map(function(k) { return data.episodes[k]; }).filter(function(e) {
@@ -96,7 +122,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
       var titles = data.titles || {}, ep = Number(list[dayIndex].episode);
       matches.push({ mal_id: Number(rows[i].myanimelist), anilist: positive(rows[i].anilist),
         mal_episode: ep, episode: ep, anime_title: titles.en || titles["x-jat"] || titles.ja || "",
-        titles: Object.keys(titles).map(function(k) { return titles[k]; }).filter(Boolean), expectedEpisodes: positive(data.episodeCount), animeplanet_slug: rows[i]["anime-planet"] || "", air_date: target });
+        titles: Object.keys(titles).map(function(k) { return titles[k]; }).filter(Boolean), expectedEpisodes: positive(data.episodeCount), animeplanet_slug: rows[i]["anime-planet"] || "", air_date: target, mapping_method: mappingMethod });
     });
     return matches.length === 1 ? matches[0] : null;
   }
@@ -235,13 +261,13 @@ var mapping=cloudbankAnimeMappingFetch(async function(u,o){var r=await req(u,o);
 async function page(u,o){var r=await req(u,o);if(!r.ok)throw Error('HTTP '+r.status+' at '+new URL(u).hostname);return r.body;}
 async function work(){var context=typeof globalThis!=='undefined'&&globalThis.VUEO_DISCOVERY_CONTEXT;if(typeof context==='string')try{context=JSON.parse(context);}catch(_){context=null;}var info=context&&(context.tmdb||context);if(info&&info.original_language&&info.original_language!=='ja'){log('AUDIO','Non-Japanese metadata excluded');return;}
 var route=type==='movie'?'https://arm.haglund.dev/api/v2/tmdb?id='+encodeURIComponent(id):'https://id-mapping-api-malid.hf.space/api/resolve?id='+encodeURIComponent(id)+'&s='+season+'&e='+episode;var response=await mapping(route),mapped=response.ok?await response.json():null;if(!mapped||!mapped.mal_id||!mapped.episode){log('MAPPING','No verified anime episode');return;}
-log('MAPPING','MAL '+mapped.mal_id+', episode '+mapped.episode);
+log('MAPPING','MAL '+mapped.mal_id+', episode '+mapped.episode+(mapped.mapping_method?' via '+mapped.mapping_method:''));
 var aliases=(mapped.titles||[]).concat([mapped.anime_title,mapped.animeplanet_slug&&mapped.animeplanet_slug.replace(/-/g,' ')]).filter(function(t){return typeof t==='string'&&t.trim();});aliases=aliases.filter(function(t,i){return aliases.indexOf(t)===i;});
 if(!aliases.length){log('MATCH','No mapped anime title');return;}
 var queries=[mapped.animeplanet_slug&&mapped.animeplanet_slug.replace(/-/g,' '),mapped.anime_title].concat(aliases).filter(Boolean).slice(0,3);var compact=queries[0]&&queries[0].split(/\s+/)[0].replace(/[^a-z0-9]/gi,'');if(compact&&compact.length>=4)queries.push(compact);queries=queries.filter(function(q,i){return queries.indexOf(q)===i;});
 var rows=(await Promise.all(queries.map(async function(q){try{return searchRows(await page(BASE+'/search/?q='+encodeURIComponent(q)));}catch(e){log('SEARCH',e.message);return [];}}))).reduce(function(a,b){return a.concat(b);},[]);
 var seen=Object.create(null);rows=rows.filter(function(r){if(seen[r.slug])return false;seen[r.slug]=true;return aliases.some(function(t){return norm(r.title)===norm(t)||norm(r.slug.replace(/-/g,' '))===norm(t);});});
-var matches=(await Promise.all(rows.slice(0,4).map(async function(row){try{var html=await page(BASE+'/series/'+encodeURIComponent(row.slug)),count=/Episodes:\s*(\d+)/i.exec(html),mal=/myanimelist\.net\/anime\/(\d+)/i.exec(html);if(mal&&Number(mal[1])!==mapped.mal_id)return null;if(count&&mapped.expectedEpisodes&&Number(count[1])>mapped.expectedEpisodes)return null;var eps=seriesEpisodes(html),target=eps.filter(function(e){return e.number===mapped.episode;});if(target.length!==1)return null;var headings=(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi)||[]).map(text);if(!headings.some(function(h){return aliases.some(function(t){return norm(t)===norm(h);});}))return null;return {row:row,episode:target[0]};}catch(e){log('SERIES',e.message);return null;}}))).filter(Boolean);
+var matches=(await Promise.all(rows.slice(0,4).map(async function(row){try{var html=await page(BASE+'/series/'+encodeURIComponent(row.slug)),count=/Episodes:\s*(\d+)/i.exec(html),mal=/myanimelist\.net\/anime\/(\d+)/i.exec(html);if(mal&&Number(mal[1])!==mapped.mal_id)return null;if(count&&mapped.expectedEpisodes&&Number(count[1])>mapped.expectedEpisodes)return null;var eps=seriesEpisodes(html),target=eps.filter(function(e){return e.number===mapped.episode;});if(target.length!==1){log('EPISODE',row.title+': mapped episode '+mapped.episode+' has '+target.length+' explicit Sub entries');return null;}var headings=(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi)||[]).map(text);if(!headings.some(function(h){return aliases.some(function(t){return norm(t)===norm(h);});}))return null;return {row:row,episode:target[0]};}catch(e){log('SERIES',e.message);return null;}}))).filter(Boolean);
 if(matches.length!==1){log('MATCH','Expected one exact mapped-title/episode match; found '+matches.length);return;}
 var match=matches[0],watch=await page(match.episode.url),tabs=subTabs(watch);log('MATCH','Exact title '+match.row.title+', mapped episode '+mapped.episode);log('SERVER',tabs.length+' explicit Sub mirrors');
 await Promise.all(tabs.map(async function(tab){try{var embed=BASE+'/embed/'+tab.id,html=await page(embed,{headers:{Referer:match.episode.url}}),sources=assigned(html,'videoSources'),headers={Referer:embed,'User-Agent':UA};var tracks=assigned(html,'tracks').concat(assigned(html,'videoTracks')).filter(function(t){return t&&/^(captions|subtitles)$/.test(t.kind||'subtitles');}).map(function(t){var name=cloudAnimeSubtitleLanguage(t);return {url:http(t.file||t.url||t.src,embed),name:name,language:name==='English'?'en':name==='Malay'?'ms':'id',headers:headers};}).filter(function(t){return t.url&&t.name;});

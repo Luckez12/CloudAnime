@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "scrapers": [
     {
       "id": "allanime",
@@ -627,7 +627,7 @@
       "id": "animegg",
       "name": "AnimeGG",
       "description": "Anime \u00b7 Sub only \u00b7 Direct MP4/HLS \u00b7 Japanese audio",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -645,7 +645,7 @@
       ],
       "runtimeTimeoutMs": 25000,
       "runtimeModules": [],
-      "notes": "Direct www.animegg.org website extractor. Existing verified TMDB-to-MAL episode mapping; conservative exact mapped title/Anime-Planet slug match, site heading and explicit Sub episode/server tabs. No speculative sequel offsets or fuzzy franchise fallback. Parses data literals without eval. Extracts published MP4 URLs without blocking HEAD probes; HLS master priority per embed. English/Malay/Indo sidecars only if returned by player. A sampled Sub episode publishes MP4 sources without external subtitle tracks; hardsub language/audio have not been independently verified. Live in-app playback remains to be tested."
+      "notes": "Direct www.animegg.org website extractor. Existing verified TMDB-to-MAL episode mapping; conservative exact mapped title/Anime-Planet slug match, site heading and explicit Sub episode/server tabs. No speculative sequel offsets or fuzzy franchise fallback. Parses data literals without eval. Extracts published MP4 URLs without blocking HEAD probes; HLS master priority per embed. English/Malay/Indo sidecars only if returned by player. A sampled Sub episode publishes MP4 sources without external subtitle tracks; hardsub language/audio have not been independently verified. Live in-app playback remains to be tested. v1.0.1: accepts show-wide ARM mappings; verifies absolute numbering against independent TVDB episode identity and broadcast date, preserves relative season date mapping. Logs absent Sub episodes. No guessed offsets."
     }
   ]
 }

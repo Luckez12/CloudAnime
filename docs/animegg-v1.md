@@ -1,4 +1,4 @@
-# AnimeGG v1.0.0
+# AnimeGG v1.0.1
 
 Website: https://www.animegg.org/
 
@@ -24,3 +24,16 @@ Reference conventions inspected: https://github.com/walterwhite-69/Anivexa-API/b
 The standalone implementation follows the current website HTML and uses stricter matching than the reference's fuzzy/offset fallback.
 
 Apply to CloudAnime repository root. Manifest preserves AnimeDunya v1.0.1 and AnimeOnsen v1.0.1. No VUEO app files or YML included.
+
+
+## v1.0.1 — show-wide/absolute episode mapping repair (2026-10-14)
+
+ARM currently identifies TMDB 37854 as MAL 21 with `themoviedb-season: null`. The old season-only filter rejected this identity before searching AnimeGG. Show-wide TV mappings are now accepted when no explicit season mapping exists. Explicit season mappings keep priority.
+
+For an absolute request such as S23 E1156, ani.zip must confirm the MAL and TMDB show identities, matching `episode` and `absoluteEpisodeNumber`, and a unique Cinemeta episode in the requested season with the same TVDB episode ID and a compatible broadcast date. This bridges to S23 E1 without guessing season offsets. Relative S23 E1 continues to resolve by broadcast date. Same-day indexing uses the selected metadata episode, not the incoming absolute number.
+
+Mapping logs include the verification method. Exact-title series matching logs the mapped episode's number of explicit Sub entries. No neighboring episode is substituted when the requested episode is absent.
+
+Validation: 10 mapping/audio checks pass, including wrong season, absent independent metadata, conflicting show/episode IDs or dates, ambiguity rejection, and relative season numbering. All 20 provider registrations and scripts pass `npm run validate`. Complete provider replays using newly downloaded ARM, ani.zip, Cinemeta and AnimeGG HTML confirm S23 E1156 maps correctly but has no Sub entry; S22 E1155 returns three published Sub MP4 links from the actual embed. AnimeGG's E1156 direct URL returned 404 during this check. No video playback or MP4 audio listening was performed; in-app playback remains to be verified. Hardsub-only playback is expected from the user's prior confirmation, and no synthetic external subtitle tracks are added.
+
+Patch contains only manifest.json, providers/animegg.js and this document. Apply paths at repository root, without an enclosing CloudAnime-main folder. No YML files included.
