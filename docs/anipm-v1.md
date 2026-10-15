@@ -1,4 +1,4 @@
-# Ani.pm v1.0.1
+# Ani.pm v1.0.2
 
 Standalone CloudAnime provider for https://ani.pm. Apply the ZIP at repository root. No containing CloudAnime-main folder, YML, app changes, external proxy backend, Node globals or runtime imports.
 
@@ -38,3 +38,16 @@ The provider now constructs and encodes the complete session query directly as a
 The original query-loss behavior was reproduced from the released v1.0.0 ZIP. All 14 previous scenarios now pass under the VUEO-compatible URL shim. A further complete replay using freshly downloaded Black Clover Season 2 responses confirms TMDB73223 S02E01 maps to MAL61967 E1 and yields two Japanese/Sub master HLS sources plus actual English and Indo WebVTT bodies. Live bootstrap/session/embed/playlist/subtitle requests succeeded for this title. All 21 providers pass manifest and syntax checks. Actual on-device playback remains unverified.
 
 Repository manifest version: 1.7.1. Ani.pm provider version: 1.0.1.
+
+
+## v1.0.2 — HLS key proof and child-playlist diagnostics
+
+The device's player log reports Media3 HTTP403 for both Sub channels, with a correct HLS MIME. It does not identify which downstream URL failed. Fresh live requests made during this investigation returned HTTP200 for the master, all six child playlists and sampled MPEG-TS segments, and HTTP206 for range reads. That sampled session expires approximately six hours after issuance. Those results do not establish the cause of the device failure.
+
+The site's downloaded Settlar player JavaScript explicitly attaches X-Settlar-Key-Proof from the embed session's keyProof when requesting /~key or /~key/<number>. v1.0.1 omitted this field from its playback output. v1.0.2 preserves the current channel's proof in source headers, which Media3 propagates to HLS subrequests. No token is logged. Missing or malformed proof is omitted; unencrypted sources remain available. Subtitle fetching behavior is retained.
+
+Each verified master gets one child-playlist preflight, with inherited playback headers. Diagnostics report whether that child was accessible, whether it declares encryption, and whether proof is present. A failed preflight logs the failure but retains the discovered URL; it does not falsely declare playback successful or scan alternate master/source candidates after a master is found. This adds one request per returned HLS channel and may increase discovery time.
+
+Validation: 17 fixture scenarios pass under the VUEO-compatible URL shim. The three new scenarios check channel-specific proof propagation to returned source/playlist headers, malformed proof rejection, and optional-proof compatibility. The protected-child response in that test is simulated, while the original website identity/master/subtitle fixtures are actual captured responses. All 21 provider registrations/scripts validate. The fresh live Black Clover sample was unencrypted, so it cannot prove that missing proof caused the user's HTTP403. Actual encrypted-key access and on-device playback after this patch remain unverified. This patch corrects an observed protocol omission; it is not a confirmed resolution of every HTTP403.
+
+Apply at repository root. Only manifest.json, providers/anipm.js and this document are included. No app files or YML. Repository manifest: 1.7.2; Ani.pm: 1.0.2.

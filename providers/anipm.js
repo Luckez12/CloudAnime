@@ -1,4 +1,4 @@
-/* CloudAnime Ani.pm v1.0.1 — standalone runtime provider. */
+/* CloudAnime Ani.pm v1.0.2 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -289,6 +289,12 @@ async function getStreams(id,type,season,episode){
    if(data.provider&&data.provider!=='anipm')throw Error('Unexpected embed provider');
    if(!japanese(data.audioLang||data.audioLanguage||(typeof data.audio==='string'?data.audio:''))){log('AUDIO',channel+': non-Japanese or unverified audio excluded');return;}
    var headers={'User-Agent':UA,Referer:EMBED+'/',Origin:EMBED},items=[];
+   // Settlar's web player attaches this session proof to /~key requests.
+   // Media3 applies source headers to child playlists, keys and segments.
+   if(typeof data.keyProof==='string'&&data.keyProof.length>0&&data.keyProof.length<=4096&&!/[\r\n]/.test(data.keyProof)){
+    headers['X-Settlar-Key-Proof']=data.keyProof;
+    log('SESSION',channel+': HLS key proof attached to playback headers');
+   }else log('SESSION',channel+': no valid HLS key proof published');
    if(typeof data.source==='string')items.push({file:data.source,type:data.kind||data.type});
    if(Array.isArray(data.sources))items=items.concat(data.sources);
    var seenSources=Object.create(null);
@@ -312,7 +318,20 @@ async function getStreams(id,type,season,episode){
      var playlist=(await request(s.url,headers)).body;if(!/^\s*#EXTM3U/.test(playlist))continue;
      var audio=playlist.match(/^#EXT-X-MEDIA:.*TYPE=AUDIO.*$/gm)||[];
      if(audio.some(function(line){var m=/LANGUAGE="([^"]+)"/.exec(line);return !m||!japanese(m[1]);})){log('AUDIO',channel+': mixed/unverified HLS audio excluded');continue;}
-     var master=/#EXT-X-STREAM-INF:/.test(playlist);hls.push({url:s.url,type:'hls',quality:master?'Auto':s.label,master:master});if(master)break;
+     var master=/#EXT-X-STREAM-INF:/.test(playlist);
+     if(master){
+      var variant=playlist.split(/\r?\n/).find(function(line){return line.trim()&&!/^\s*#/.test(line);});
+      var childUrl=variant&&address(variant.trim(),s.url);
+      if(childUrl)try{
+       var child=(await request(childUrl,headers)).body;
+       if(!/^\s*#EXTM3U/.test(child))throw Error('Video playlist is not HLS');
+       var keyLines=child.match(/^#EXT-X-KEY:.*$/gm)||[];
+       var encrypted=keyLines.some(function(line){return !/METHOD=NONE(?:,|$)/.test(line);});
+       log('PLAYBACK_PREFLIGHT',channel+': video playlist accessible; encrypted='+encrypted+'; keyProof='+Boolean(headers['X-Settlar-Key-Proof']));
+       if(encrypted&&!headers['X-Settlar-Key-Proof'])log('PLAYBACK_PREFLIGHT',channel+': encrypted source lacks session key proof');
+      }catch(e){log('PLAYBACK_PREFLIGHT',channel+': video playlist check failed: '+e.message);}
+     }
+     hls.push({url:s.url,type:'hls',quality:master?'Auto':s.label,master:master});if(master)break;
     }else if(/^(?:mp4|video\/mp4)$/i.test(s.type||'')||/\.mp4(?:[?#]|$)/i.test(s.url)){mp4.push({url:s.url,type:'mp4',quality:s.label});}}catch(e){log('SOURCE',channel+': '+e.message);}
    }
    var master=hls.find(function(s){return s.master;}),selected=master?[master]:hls.length?hls:mp4;
