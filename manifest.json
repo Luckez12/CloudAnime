@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "scrapers": [
     {
       "id": "allanime",
@@ -651,7 +651,7 @@
       "id": "anipm",
       "name": "Ani.pm",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 Softsub/Hardsub HLS",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -669,7 +669,7 @@
       ],
       "runtimeTimeoutMs": 30000,
       "runtimeModules": [],
-      "notes": "Standalone ani.pm API/Settlar extractor. Verified TMDB/IMDb-to-MAL mapping including independently corroborated absolute episodes. Requires exact MAL/AniList search and bootstrap identities, exact episode and effective Sub language/package. Requests only published sub/subhard channels, requires Japanese session audio and rejects foreign/mixed/unverified HLS audio groups. Validates HLS and gives first master priority per channel. External English/Malay/Indo subtitles require recognized actual VTT/ASS/SRT cues with explicit MIME and headers. Live One Piece E1156 soft/hard masters and English VTT retrieved and replay tested; actual in-app video playback remains to be verified. No proxy backend, cookies, runtime imports or dub requests. v1.0.1: builds session query explicitly because VUEO URL.searchParams mutations do not update href; fixes HTTP 400 from missing session parameters. v1.0.2: forwards Settlar session keyProof in X-Settlar-Key-Proof playback headers, as required by the site player for protected HLS keys. Adds one child-playlist preflight per master/channel with safe encryption/proof diagnostics. Device HTTP403 resolution remains unverified."
+      "notes": "Standalone ani.pm API/Settlar extractor. Verified TMDB/IMDb-to-MAL mapping including independently corroborated absolute episodes. Requires exact MAL/AniList search and bootstrap identities, exact episode and effective Sub language/package. Requests only published sub/subhard channels, requires Japanese session audio and rejects foreign/mixed/unverified HLS audio groups. Validates HLS and gives first master priority per channel. External English/Malay/Indo subtitles require recognized actual VTT/ASS/SRT cues with explicit MIME and headers. Live One Piece E1156 soft/hard masters and English VTT retrieved and replay tested; actual in-app video playback remains to be verified. No proxy backend, cookies, runtime imports or dub requests. v1.0.1: builds session query explicitly because VUEO URL.searchParams mutations do not update href; fixes HTTP 400 from missing session parameters. v1.0.2: forwards Settlar session keyProof in X-Settlar-Key-Proof playback headers, as required by the site player for protected HLS keys. Adds one child-playlist preflight per master/channel with safe encryption/proof diagnostics. Device HTTP403 resolution remains unverified. v1.0.3: removes the additional child-playlist preflight introduced in v1.0.2. Retains original master priority and session headers. This is a scan-overhead rollback, not a confirmed HTTP403 playback fix."
     }
   ]
 }

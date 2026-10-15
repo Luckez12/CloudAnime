@@ -1,4 +1,4 @@
-# Ani.pm v1.0.2
+# Ani.pm v1.0.3
 
 Standalone CloudAnime provider for https://ani.pm. Apply the ZIP at repository root. No containing CloudAnime-main folder, YML, app changes, external proxy backend, Node globals or runtime imports.
 
@@ -51,3 +51,12 @@ Each verified master gets one child-playlist preflight, with inherited playback 
 Validation: 17 fixture scenarios pass under the VUEO-compatible URL shim. The three new scenarios check channel-specific proof propagation to returned source/playlist headers, malformed proof rejection, and optional-proof compatibility. The protected-child response in that test is simulated, while the original website identity/master/subtitle fixtures are actual captured responses. All 21 provider registrations/scripts validate. The fresh live Black Clover sample was unencrypted, so it cannot prove that missing proof caused the user's HTTP403. Actual encrypted-key access and on-device playback after this patch remain unverified. This patch corrects an observed protocol omission; it is not a confirmed resolution of every HTTP403.
 
 Apply at repository root. Only manifest.json, providers/anipm.js and this document are included. No app files or YML. Repository manifest: 1.7.2; Ani.pm: 1.0.2.
+
+
+## v1.0.3 — remove added scan overhead
+
+The user's subsequent player log still reports HTTP403. The extra video-playlist preflight in v1.0.2 did not resolve it and can increase discovery latency. It is removed in v1.0.3. The existing master-HLS inspection, published-subtitle validation, encoded session URL fix and session key proof remain unchanged. No further child playlist, key or video-segment probes are added.
+
+The original 17 identity/audio/session/output scenarios pass, and the baseline now explicitly asserts that no master child-playlist URL is fetched by discovery. All 21 provider scripts and manifest entries validate. This rollback removes up to one added request per channel; network variance can still affect total scan duration. It is not a resolution of the player HTTP403. The user's latest player error still lacks the failing downstream request URI/type and the effective request-header information needed to determine why Media3 is rejected.
+
+Provider 1.0.3; repository manifest 1.7.3. No app/YML files.
