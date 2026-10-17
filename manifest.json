@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.7.4",
+  "version": "1.8.0",
   "scrapers": [
     {
       "id": "allanime",
@@ -487,8 +487,8 @@
     {
       "id": "reanime",
       "name": "Reanime",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.6",
+      "description": "Anime · Japanese Sub · Direct mapped ID + HLS · Requires VUEO Flix playlist support v1",
+      "version": "2.0.0",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -498,24 +498,23 @@
       "enabled": true,
       "hasSettings": false,
       "formats": [
-        "mkv",
         "m3u8"
       ],
       "logo": "https://www.google.com/s2/favicons?domain=reanime.to&sz=128",
       "contentLanguage": [
         "en"
       ],
-      "runtimeTimeoutMs": 20000,
+      "runtimeTimeoutMs": 22000,
       "upstreamSupportedTypes": [
         "movie",
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Verified ARM + episode metadata mapping replaces broad AniList date-window selection. Search and detail fallbacks require the mapped AniList identity. Conflicting, missing and ambiguous IDs fail closed. Japanese/sub filtering and existing extraction retained. Playback not live-verified.",
+      "notes": "Rebuilt standalone provider. Unique ARM season/movie identities route directly to Reanime; date metadata is fetched only for ambiguous/special mappings. No title search, Cinemeta, download/progress probes on normal path. Actual HLS extracted and verified; requires matching VUEO Shared Core decoder patch. Native Japanese audio only after master filtering. No guaranteed device playback claim.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
-        "cheerio-without-node-native"
+        "crypto-js"
       ]
     },
     {
