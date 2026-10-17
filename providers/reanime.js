@@ -1,4 +1,4 @@
-/* CloudAnime Reanime v2.0.0 — direct identity route; requires VUEO Flix playlist support v1. */
+/* CloudAnime Reanime v2.0.1 — direct identity route; requires VUEO provider HLS instructions v1. */
 (function () {
   "use strict";
   var SITE = "https://reanime.to",
@@ -404,9 +404,13 @@
         })
         .filter(Boolean);
       if (closed) return;
-      var fragment = "vueo_flix_key=" + words(C, manifestKey).toString(C.enc.Hex);
-      streams.push({
+      var fragment =
+        "vueo_hls_v1=base64-xor&key=" +
+        words(C, manifestKey).toString(C.enc.Hex) +
+        "&audio=ja,jpn,japanese";
+      var source = {
         name: "Reanime / " + server + " (Auto)",
+        serverName: server,
         title: "AniList " + mapped.id + " • Episode " + mapped.ep + " • Japanese Sub",
         url: url + "#" + fragment,
         headers: headers,
@@ -416,14 +420,14 @@
         audioLanguage: "ja",
         subtitles: tracks,
         provider: "reanime",
-      });
+      };
       log(
         "EXTRACT",
         "master HLS verified; Japanese rendition; " +
           tracks.length +
-          " subtitle tracks; requires VUEO Flix support v1",
+          " subtitle tracks; provider HLS instructions v1",
       );
-      return true;
+      return source;
     }
     try {
       var mapped = await mapping();
@@ -439,40 +443,40 @@
         log("RESULT", "No published servers");
         return [];
       }
-      var groups = Object.create(null),
-        groupKeys = [];
-      res.servers.forEach(function (server) {
-        if (!server || String(server.dataType).toLowerCase() !== "sub" || !server.dataLink) return;
-        try {
-          var u = new URL(server.dataLink),
-            key = u.origin + u.pathname;
-          if (!flixHost(u.href)) return;
-          if (!groups[key]) {
-            groups[key] = [];
-            groupKeys.push(key);
-          }
-          if (
-            groups[key].length < 2 &&
-            !groups[key].some(function (s) {
-              return s.dataLink === server.dataLink;
-            })
-          )
-            groups[key].push(server);
-        } catch (_) {}
-      });
-      await Promise.all(
-        groupKeys.slice(0, 3).map(async function (key) {
-          var list = groups[key];
-          for (var i = 0; i < list.length; i++) {
+      var seen = Object.create(null);
+      var servers = res.servers
+        .filter(function (server) {
+          if (!server || String(server.dataType).toLowerCase() !== "sub" || !server.dataLink)
+            return false;
+          var url = address(server.dataLink);
+          if (!url || !flixHost(url)) return false;
+          // The profile query distinguishes HD-1 and HD-2 even for a shared access ID.
+          var identity = JSON.stringify([url, server.serverName || ""]);
+          if (seen[identity]) return false;
+          seen[identity] = true;
+          return true;
+        })
+        .slice(0, 6);
+      var results = [];
+      for (var batch = 0; batch < servers.length; batch += 2) {
+        var pair = await Promise.all(
+          servers.slice(batch, batch + 2).map(async function (server) {
             try {
-              if (await extract(list[i].dataLink, mapped, list[i].serverName || "FlixCloud"))
-                return;
+              return await extract(server.dataLink, mapped, server.serverName || "FlixCloud");
             } catch (e) {
-              log("EXTRACT", String(e.message).replace(/https?:\/\/\S+/g, "<url>"));
+              log(
+                "EXTRACT",
+                (server.serverName || "FlixCloud") +
+                  ": " +
+                  String(e.message).replace(/https?:\/\/\S+/g, "<url>"),
+              );
+              return null;
             }
-          }
-        }),
-      );
+          }),
+        );
+        results = results.concat(pair);
+      }
+      streams = results.filter(Boolean);
     } catch (e) {
       log("RESULT", String(e.message).replace(/https?:\/\/\S+/g, "<url>"));
     } finally {
