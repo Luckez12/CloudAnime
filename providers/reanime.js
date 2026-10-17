@@ -1,4 +1,4 @@
-/* CloudAnime Reanime v2.0.1 — direct identity route; requires VUEO provider HLS instructions v1. */
+/* CloudAnime Reanime v2.0.2 — direct identity route; requires VUEO provider HLS instructions v1. */
 (function () {
   "use strict";
   var SITE = "https://reanime.to",
@@ -16,7 +16,9 @@
     return Number.isInteger(n) && n > 0 ? n : null;
   }
   function day(v) {
-    return typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : "";
+    return typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)
+      ? v.slice(0, 10)
+      : "";
   }
   function address(u, base) {
     try {
@@ -37,7 +39,9 @@
     return /^(?:[a-z0-9-]+\.)*flixcloud\.cc$/i.test(host(u));
   }
   function attribute(line, key) {
-    var m = new RegExp("(?:[:,])" + key + '=(?:"([^"]*)"|([^,]*))', "i").exec(line);
+    var m = new RegExp("(?:[:,])" + key + '=(?:"([^"]*)"|([^,]*))', "i").exec(
+      line,
+    );
     return m ? (m[1] != null ? m[1] : m[2]) : "";
   }
   function japanese(line) {
@@ -53,7 +57,13 @@
         count = 0;
       function get(i, depth) {
         if (i === -1) return undefined;
-        if (!Number.isInteger(i) || i < 0 || i >= table.length || depth > 30 || ++count > 15000)
+        if (
+          !Number.isInteger(i) ||
+          i < 0 ||
+          i >= table.length ||
+          depth > 30 ||
+          ++count > 15000
+        )
           throw Error("Invalid embed data");
         if (Object.prototype.hasOwnProperty.call(memo, i)) return memo[i];
         var v = table[i],
@@ -87,7 +97,8 @@
   }
   function bytes(C, wa) {
     var out = new Uint8Array(wa.sigBytes);
-    for (var i = 0; i < out.length; i++) out[i] = (wa.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 255;
+    for (var i = 0; i < out.length; i++)
+      out[i] = (wa.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 255;
     return out;
   }
   function words(C, ba) {
@@ -146,10 +157,13 @@
   async function getStreams(id, type, season, episode) {
     type = type === "series" ? "tv" : type;
     id = String(id || "");
-    if (!/^(?:\d+|tt\d+)$/.test(id) || ["tv", "movie"].indexOf(type) < 0) return [];
+    if (!/^(?:\d+|tt\d+)$/.test(id) || ["tv", "movie"].indexOf(type) < 0)
+      return [];
     if (
       type === "tv" &&
-      (!Number.isInteger(Number(season)) || Number(season) < 0 || !positive(episode))
+      (!Number.isInteger(Number(season)) ||
+        Number(season) < 0 ||
+        !positive(episode))
     )
       return [];
     season = Number(season);
@@ -162,7 +176,8 @@
       var left = Math.min(6500, deadline - Date.now());
       if (left <= 0 || closed) throw Error("Request budget reached");
       var timer,
-        controller = typeof AbortController === "function" ? new AbortController() : null;
+        controller =
+          typeof AbortController === "function" ? new AbortController() : null;
       requestCount++;
       try {
         return await Promise.race([
@@ -170,7 +185,10 @@
             .then(function () {
               return fetch(url, {
                 headers: Object.assign(
-                  { "User-Agent": UA, Accept: "application/json, text/plain, */*" },
+                  {
+                    "User-Agent": UA,
+                    Accept: "application/json, text/plain, */*",
+                  },
                   headers || {},
                 ),
                 signal: controller ? controller.signal : undefined,
@@ -226,19 +244,30 @@
         );
       });
       var exact = rows.filter(function (r) {
-        return r["themoviedb-season"] != null && Number(r["themoviedb-season"]) === season;
+        return (
+          r["themoviedb-season"] != null &&
+          Number(r["themoviedb-season"]) === season
+        );
       });
       if (type === "movie") {
         var movies = rows.filter(function (r) {
           return r["themoviedb-season"] == null;
         });
         if (movies.length === 1)
-          return { id: Number(movies[0].anilist), ep: 1, method: "exact movie ID" };
+          return {
+            id: Number(movies[0].anilist),
+            ep: 1,
+            method: "exact movie ID",
+          };
         return null;
       }
       // ARM is the season identity authority. No blanket date gate for a unique normal season.
       if (season > 0 && exact.length === 1)
-        return { id: Number(exact[0].anilist), ep: episode, method: "exact season ID" };
+        return {
+          id: Number(exact[0].anilist),
+          ep: episode,
+          method: "exact season ID",
+        };
       var candidates = exact.length
         ? exact
         : rows.filter(function (r) {
@@ -261,11 +290,11 @@
       });
       var datasets = await Promise.all(
           candidates.map(function (r) {
-            return metadata("https://api.ani.zip/mappings?anilist_id=" + r.anilist).catch(
-              function () {
-                return null;
-              },
-            );
+            return metadata(
+              "https://api.ani.zip/mappings?anilist_id=" + r.anilist,
+            ).catch(function () {
+              return null;
+            });
           }),
         ),
         epData = await datePromise;
@@ -294,7 +323,9 @@
             return (
               e &&
               positive(e.episode) &&
-              [day(e.airDate), day(e.airdate), day(e.airDateUtc)].indexOf(target) >= 0
+              [day(e.airDate), day(e.airdate), day(e.airDateUtc)].indexOf(
+                target,
+              ) >= 0
             );
           });
         if (es.length === 1)
@@ -314,11 +345,22 @@
       var profile = u.searchParams.get("v");
       if (profile && !/^\d{1,2}$/.test(profile)) return;
       var data = decodeTable(
-        await json(FLIX + "/e/" + m[1] + "/__data.json" + (profile ? "?v=" + profile : ""), {
-          Referer: SITE + "/",
-        }),
+        await json(
+          FLIX +
+            "/e/" +
+            m[1] +
+            "/__data.json" +
+            (profile ? "?v=" + profile : ""),
+          {
+            Referer: SITE + "/",
+          },
+        ),
       );
-      if (!data || typeof data.obfuscation_seed !== "string" || data.obfuscation_seed.length > 128)
+      if (
+        !data ||
+        typeof data.obfuscation_seed !== "string" ||
+        data.obfuscation_seed.length > 128
+      )
         throw Error("Missing playback metadata");
       var C = require("crypto-js"),
         f = fields(C, data.obfuscation_seed),
@@ -326,7 +368,9 @@
         token = data[f.token];
       if (typeof token !== "string" || !/^[a-zA-Z0-9_-]{1,512}$/.test(token))
         throw Error("Invalid playback token");
-      var tok = await json(FLIX + "/api/m3u8/" + token, { Referer: FLIX + "/" }),
+      var tok = await json(FLIX + "/api/m3u8/" + token, {
+          Referer: FLIX + "/",
+        }),
         frag = base64(C, o[f.kf]),
         frag2 = base64(C, data[f.kf2]),
         T = base64(
@@ -345,10 +389,16 @@
       kernel.memory.set(T, 1064);
       kernel.run("_s", [parseInt(data.obfuscation_seed.slice(0, 8), 16) | 0]);
       kernel.run("_r", [1000, 1032, 1064, 1096, 32]);
-      var key = pbkdf(C, words(C, kernel.memory.slice(1096, 1128)), data.obfuscation_seed),
+      var key = pbkdf(
+          C,
+          words(C, kernel.memory.slice(1096, 1128)),
+          data.obfuscation_seed,
+        ),
         kb = bytes(C, key);
       for (var i = 0; i < 32; i++)
-        kb[i] ^= data.obfuscation_seed.charCodeAt(i % data.obfuscation_seed.length);
+        kb[i] ^= data.obfuscation_seed.charCodeAt(
+          i % data.obfuscation_seed.length,
+        );
       var aesKey = C.SHA256(words(C, kb)),
         url = C.AES.decrypt(
           {
@@ -361,7 +411,11 @@
             ),
           },
           aesKey,
-          { iv: C.enc.Base64.parse(o[f.iv]), mode: C.mode.CBC, padding: C.pad.Pkcs7 },
+          {
+            iv: C.enc.Base64.parse(o[f.iv]),
+            mode: C.mode.CBC,
+            padding: C.pad.Pkcs7,
+          },
         )
           .toString(C.enc.Utf8)
           .trim();
@@ -369,18 +423,27 @@
         !flixHost(url) ||
         !/^https:\/\//.test(url) ||
         !/\.m3u8$/.test(new URL(url).pathname) ||
-        !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(new URL(url).pathname)
+        !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(
+          new URL(url).pathname,
+        )
       )
         throw Error("Invalid stream URL");
       var ptr = kernel.run("_c", []),
         manifestKey = kernel.memory.slice(ptr, ptr + 32),
         headers = { "User-Agent": UA, Referer: FLIX + "/", Origin: FLIX };
       var master = decodePlaylist(C, await text(url, headers), manifestKey);
-      if (master.indexOf("#EXT-X-STREAM-INF:") < 0) throw Error("Master HLS not published");
+      if (master.indexOf("#EXT-X-STREAM-INF:") < 0)
+        throw Error("Master HLS not published");
       var audio = master.split(/\r?\n/).filter(function (l) {
-        return /^#EXT-X-MEDIA:/.test(l) && attribute(l, "TYPE").toUpperCase() === "AUDIO";
+        return (
+          /^#EXT-X-MEDIA:/.test(l) &&
+          attribute(l, "TYPE").toUpperCase() === "AUDIO"
+        );
       });
-      if ((audio.length && !audio.some(japanese)) || (!audio.length && data.audio_type !== "sub"))
+      if (
+        (audio.length && !audio.some(japanese)) ||
+        (!audio.length && data.audio_type !== "sub")
+      )
         throw Error("Japanese HLS audio not verified");
       var tracks = (data.subtitles || [])
         .map(function (t) {
@@ -390,7 +453,8 @@
             ? {
                 url: src,
                 language: lang,
-                name: lang === "en" ? "English" : lang === "ms" ? "Malay" : "Indo",
+                name:
+                  lang === "en" ? "English" : lang === "ms" ? "Malay" : "Indo",
                 mimeType:
                   t.format === "ass"
                     ? "text/x-ssa"
@@ -407,11 +471,18 @@
       var fragment =
         "vueo_hls_v1=base64-xor&key=" +
         words(C, manifestKey).toString(C.enc.Hex) +
-        "&audio=ja,jpn,japanese";
+        "&audio=ja,jpn,japanese" +
+        "&segment_prefixes=52494646????????57454250,89504e470d0a1a0a" +
+        "&segment_key=9d2af147b38e5c70a619e43bd8620fc5&segment_plain=47";
       var source = {
         name: "Reanime / " + server + " (Auto)",
         serverName: server,
-        title: "AniList " + mapped.id + " • Episode " + mapped.ep + " • Japanese Sub",
+        title:
+          "AniList " +
+          mapped.id +
+          " • Episode " +
+          mapped.ep +
+          " • Japanese Sub",
         url: url + "#" + fragment,
         headers: headers,
         quality: "Auto",
@@ -435,7 +506,15 @@
         log("MAPPING", "No unambiguous title/episode mapping; skipped");
         return [];
       }
-      log("MAPPING", "AniList " + mapped.id + ", episode " + mapped.ep + " via " + mapped.method);
+      log(
+        "MAPPING",
+        "AniList " +
+          mapped.id +
+          ", episode " +
+          mapped.ep +
+          " via " +
+          mapped.method,
+      );
       var res = await json(SITE + "/api/flix/" + mapped.id + "/" + mapped.ep, {
         Referer: SITE + "/",
       });
@@ -446,7 +525,11 @@
       var seen = Object.create(null);
       var servers = res.servers
         .filter(function (server) {
-          if (!server || String(server.dataType).toLowerCase() !== "sub" || !server.dataLink)
+          if (
+            !server ||
+            String(server.dataType).toLowerCase() !== "sub" ||
+            !server.dataLink
+          )
             return false;
           var url = address(server.dataLink);
           if (!url || !flixHost(url)) return false;
@@ -462,7 +545,11 @@
         var pair = await Promise.all(
           servers.slice(batch, batch + 2).map(async function (server) {
             try {
-              return await extract(server.dataLink, mapped, server.serverName || "FlixCloud");
+              return await extract(
+                server.dataLink,
+                mapped,
+                server.serverName || "FlixCloud",
+              );
             } catch (e) {
               log(
                 "EXTRACT",
@@ -481,7 +568,10 @@
       log("RESULT", String(e.message).replace(/https?:\/\/\S+/g, "<url>"));
     } finally {
       closed = true;
-      log("RESULT", streams.length + " sources, " + requestCount + " HTTP calls");
+      log(
+        "RESULT",
+        streams.length + " sources, " + requestCount + " HTTP calls",
+      );
     }
     return streams;
   }
@@ -531,9 +621,11 @@
         for (var n = leb(); n--; ) {
           if (bytes[p++] !== 96) throw Error("Unsupported key type");
           var a = leb();
-          for (var j = 0; j < a; j++) if (bytes[p++] !== 127) throw Error("Unsupported key type");
+          for (var j = 0; j < a; j++)
+            if (bytes[p++] !== 127) throw Error("Unsupported key type");
           var r = leb();
-          for (j = 0; j < r; j++) if (bytes[p++] !== 127) throw Error("Unsupported key result");
+          for (j = 0; j < r; j++)
+            if (bytes[p++] !== 127) throw Error("Unsupported key result");
           types.push({ args: a, results: r });
         }
       } else if (section === 2) {
@@ -568,15 +660,16 @@
             } else if (op === 11 && open.length) {
               var at = open.pop();
               ops[at].end = ops.length;
-            } else if ([12, 13, 32, 33, 34, 35, 36].indexOf(op) >= 0) ins.arg = leb();
+            } else if ([12, 13, 32, 33, 34, 35, 36].indexOf(op) >= 0)
+              ins.arg = leb();
             else if (op === 65) ins.arg = leb(true);
             else if (op === 45 || op === 58) {
               leb();
               ins.arg = leb();
             } else if (
               [
-                11, 15, 26, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 106, 107, 108, 113, 114,
-                115, 116, 117, 118, 119, 120,
+                11, 15, 26, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 106,
+                107, 108, 113, 114, 115, 116, 117, 118, 119, 120,
               ].indexOf(op) < 0
             )
               throw Error("Unsupported key instruction");
@@ -587,11 +680,13 @@
         }
       } else if (section === 11) {
         for (n = leb(); n--; ) {
-          if (leb() !== 0 || bytes[p++] !== 65) throw Error("Unsupported key data");
+          if (leb() !== 0 || bytes[p++] !== 65)
+            throw Error("Unsupported key data");
           var offset = leb(true);
           if (bytes[p++] !== 11) throw Error("Invalid key data");
           len = leb();
-          if (offset < 0 || offset + len > memory.length) throw Error("Key memory bounds");
+          if (offset < 0 || offset + len > memory.length)
+            throw Error("Key memory bounds");
           memory.set(bytes.slice(p, p + len), offset);
           p += len;
         }
@@ -602,7 +697,8 @@
       var f = exports[name],
         body = bodies[f],
         sig = types[funcs[f]];
-      if (!body || !sig || args.length !== sig.args) throw Error("Missing key export");
+      if (!body || !sig || args.length !== sig.args)
+        throw Error("Missing key export");
       var l = args.concat(Array(body.locals).fill(0)),
         s = [],
         frames = [],
