@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "scrapers": [
     {
       "id": "allanime",
@@ -416,8 +416,8 @@
     {
       "id": "hianime",
       "name": "HiAnime",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.7",
+      "description": "Anime · Japanese/Sub only · Verified MAL episode mapping · Current MegaPlay encrypted extraction and website CDN failover",
+      "version": "2.0.0",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
