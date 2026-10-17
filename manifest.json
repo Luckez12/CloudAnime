@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.10",
+  "version": "1.8.11",
   "scrapers": [
     {
       "id": "allanime",
@@ -41,35 +41,34 @@
     {
       "id": "animekai",
       "name": "AnimeKai",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.5",
-      "author": "Nuvio Team",
+      "description": "Anime · Japanese Sub · AnimeKai.li / MegaVid · HTTP only",
+      "version": "2.0.0",
+      "author": "CloudAnime",
       "supportedTypes": [
         "movie",
         "tv"
       ],
       "filename": "providers/animekai.js",
       "enabled": true,
-      "hasSettings": true,
-      "limited": true,
+      "hasSettings": false,
       "formats": [
-        "mp4",
         "m3u8"
       ],
       "logo": "https://i.postimg.cc/MKJd7fy7/animekai.png",
       "contentLanguage": [
-        "en"
+        "ja"
       ],
-      "runtimeTimeoutMs": 20000,
+      "runtimeTimeoutMs": 26000,
       "upstreamSupportedTypes": [
         "movie",
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
+      "notes": "Rebuilt from animekai.li published MegaVid MAL/Sub player routes. Exact ARM/AniZip episode mapping, no title search or guessed offsets. Calls the published exact MAL/episode/Sub source JSON directly, validates one master HLS, forwards supplied English/Malay/Indo subtitle tracks. No old www3.anikai.cc, Dub calls, mirror fan-out, crypto proxy or WebView. Generic existing shared HTTP transport only. Live video master/child/TS verified; sampled default English subtitle URL was not retrievable in the build environment. Android playback and subtitle rendering remain unconfirmed.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": []
+      "runtimeModules": [],
+      "sourceWebsite": "https://animekai.li/"
     },
     {
       "id": "anizone",
