@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "scrapers": [
     {
       "id": "allanime",
@@ -521,13 +521,13 @@
       "id": "vidnest-anime",
       "name": "VidNest",
       "description": "Anime · Japanese Sub · Aniwave · HTTP only",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
         "tv"
       ],
-      "filename": "providers/vidnest-anime.js",
+      "filename": "providers/vidnest.js",
       "enabled": true,
       "formats": [
         "m3u8"
@@ -536,7 +536,7 @@
       "contentLanguage": [
         "ja"
       ],
-      "notes": "Rebuilt for the current VidNest Aniwave Sub API. Exact ARM/AniZip title and episode mapping; no fuzzy search or guessed season offsets. Authenticated AES-GCM decoding inside the provider, no external decrypt service. Master HLS validation, English/Malay/Indo subtitle metadata, shared HTTP playback transport. No old backend, Dub/Hindi, HiAnime duplicate engine, WebView, child/segment/subtitle preflight. Android playback remains to be tested. Stable provider ID and filename retained for existing toggles.",
+      "notes": "Rebuilt for the current VidNest Aniwave Sub API. Exact ARM/AniZip title and episode mapping; no fuzzy search or guessed season offsets. Authenticated AES-GCM decoding inside the provider, no external decrypt service. Master HLS validation, English/Malay/Indo subtitle metadata, shared HTTP playback transport. No old backend, Dub/Hindi, HiAnime duplicate engine, WebView, child/segment/subtitle preflight. User confirmed playback on Android. v2.0.1 changes the file path to providers/vidnest.js; extraction unchanged. Stable provider ID retained for existing toggles.",
       "runtimeTimeoutMs": 20000,
       "sourceRepository": "https://github.com/yoruix/nuvio-providers",
       "sourceCommit": "ed38d1aee0024f56479369c9423fefb278e0b62a",
