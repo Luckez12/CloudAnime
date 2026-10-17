@@ -1,0 +1,383 @@
+{
+  "arm": [
+    {
+      "anilist": 161645,
+      "themoviedb": 220542,
+      "themoviedb-season": 1,
+      "thetvdb": 431162,
+      "thetvdb-season": 1,
+      "media": "TV"
+    },
+    {
+      "anilist": 176301,
+      "themoviedb": 220542,
+      "themoviedb-season": 1,
+      "thetvdb": 431162,
+      "thetvdb-season": 2,
+      "media": "TV"
+    },
+    {
+      "anilist": 195516,
+      "themoviedb": 220542,
+      "themoviedb-season": 1,
+      "thetvdb": 431162,
+      "thetvdb-season": 3,
+      "media": "TV"
+    },
+    {
+      "anilist": 200927,
+      "themoviedb": 220542,
+      "themoviedb-season": 1,
+      "thetvdb": 431162,
+      "thetvdb-season": 4,
+      "media": "TV"
+    }
+  ],
+  "datasets": {
+    "161645": {
+      "mappings": {
+        "animeplanet_id": "the-apothecary-diaries",
+        "kitsu_id": 47083,
+        "mal_id": 54492,
+        "type": "TV",
+        "anilist_id": 161645,
+        "anisearch_id": 18232,
+        "anidb_id": 17870,
+        "notifymoe_id": null,
+        "livechart_id": 10701,
+        "thetvdb_id": 431162,
+        "imdb_id": "tt26743760",
+        "themoviedb_id": "220542"
+      },
+      "episodes": {
+        "1": {
+          "tvdbShowId": 431162,
+          "tvdbId": 9620307,
+          "seasonNumber": 1,
+          "episodeNumber": 1,
+          "absoluteEpisodeNumber": 1,
+          "title": {
+            "ja": "猫猫",
+            "en": "Maomao",
+            "de": "Maomao",
+            "x-jat": "Maomao"
+          },
+          "airDate": "2023-10-22",
+          "airDateUtc": "2023-10-22T14:00:00Z",
+          "runtime": 23,
+          "overview": "After being kidnapped and forced to work as a servant in the rear palace, former apothecary Maomao inadvertently draws the attention of the higher ranks when she investigates what's causing the emperor's infant heirs to fall mysteriously ill.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/9620307/screencap/65330cbfbfed5.jpg",
+          "episode": "1",
+          "anidbEid": 271689,
+          "length": 25,
+          "airdate": "2023-10-22",
+          "rating": "8.67",
+          "summary": "After being kidnapped and forced to work as a servant in the rear palace, former apothecary Maomao inadvertently draws the attention of the higher ranks when she investigates what`s causing the emperor`s infant heirs to fall mysteriously ill.\nSource: crunchyroll"
+        },
+        "2": {
+          "tvdbShowId": 431162,
+          "tvdbId": 9973394,
+          "seasonNumber": 1,
+          "episodeNumber": 2,
+          "absoluteEpisodeNumber": 2,
+          "title": {
+            "ja": "無愛想な薬師",
+            "en": "Chilly Apothecary",
+            "de": "Die barsche Heilerin",
+            "x-jat": "Buaisou na Kusushi"
+          },
+          "airDate": "2023-10-22",
+          "airDateUtc": "2023-10-22T14:00:00Z",
+          "runtime": 23,
+          "overview": "Maomao tries to settle into her promotion to lady-in-waiting and food taster, but struggles to fend off both boredom and the overly-familiar Jinshi. That is, until she gets an assignment of her dreams: to concoct an aphrodisiac.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/9973394/screencap/65349d195c26b.jpg",
+          "episode": "2",
+          "anidbEid": 271690,
+          "length": 25,
+          "airdate": "2023-10-22",
+          "rating": "9.14",
+          "summary": "Maomao tries to settle into her promotion to lady-in-waiting and food taster, but struggles to fend off both boredom and the overly-familiar Jinshi. That is, until she gets an assignment of her dreams: to concoct an aphrodisiac.\nSource: crunchyroll"
+        },
+        "3": {
+          "tvdbShowId": 431162,
+          "tvdbId": 9973395,
+          "seasonNumber": 1,
+          "episodeNumber": 3,
+          "absoluteEpisodeNumber": 3,
+          "title": {
+            "ja": "幽霊騒動",
+            "en": "The Unsettling Matter of the Spirit",
+            "de": "Aufregung um einen Geist",
+            "x-jat": "Yuurei Soudou"
+          },
+          "airDate": "2023-10-22",
+          "airDateUtc": "2023-10-22T14:00:00Z",
+          "runtime": 23,
+          "overview": "Tasked with investigating a ghostly woman dancing nightly on the palace walls, Maomao finds a sleepwalking Concubine Fuyou. But with no medicinal cure for sleepwalking, she's forced to dig deeper to find the real reason behind Fuyou's affliction.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/9973395/screencap/65349da5c7542.jpg",
+          "episode": "3",
+          "anidbEid": 271691,
+          "length": 25,
+          "airdate": "2023-10-22",
+          "rating": "8.72",
+          "summary": "Tasked with investigating a ghostly woman dancing nightly on the palace walls, Maomao finds a sleepwalking Concubine Fuyou. But with no medicinal cure for sleepwalking, she`s forced to dig deeper to find the real reason behind Fuyou`s affliction.\nSource: crunchyroll"
+        },
+        "4": {
+          "tvdbShowId": 431162,
+          "tvdbId": 9973396,
+          "seasonNumber": 1,
+          "episodeNumber": 4,
+          "absoluteEpisodeNumber": 4,
+          "title": {
+            "ja": "恫喝",
+            "en": "The Threat",
+            "de": "Die Drohung",
+            "x-jat": "Doukatsu"
+          },
+          "airDate": "2023-10-29",
+          "airDateUtc": "2023-10-29T14:00:00Z",
+          "runtime": 23,
+          "overview": "Under direct orders from the emperor himself, Maomao tries to care for an ailing Concubine Lihua, but finds her work impeded by Lihua's own ladies-in-waiting.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/9973396/screencap/653bf6ec03402.jpg",
+          "episode": "4",
+          "anidbEid": 272414,
+          "length": 25,
+          "airdate": "2023-10-29",
+          "rating": "9.67",
+          "summary": "Under direct orders from the emperor himself, Maomao tries to care for an ailing Concubine Lihua, but finds her work impeded by Lihua`s own ladies-in-waiting.\nSource: crunchyroll"
+        }
+      }
+    },
+    "176301": {
+      "mappings": {
+        "animeplanet_id": "the-apothecary-diaries-2nd-season",
+        "kitsu_id": 48649,
+        "mal_id": 58514,
+        "type": "TV",
+        "anilist_id": 176301,
+        "anisearch_id": 19138,
+        "anidb_id": 18562,
+        "notifymoe_id": null,
+        "livechart_id": 12609,
+        "thetvdb_id": 431162,
+        "imdb_id": "tt26743760",
+        "themoviedb_id": "220542"
+      },
+      "episodes": {
+        "1": {
+          "tvdbShowId": 431162,
+          "tvdbId": 10400908,
+          "seasonNumber": 2,
+          "episodeNumber": 1,
+          "absoluteEpisodeNumber": 25,
+          "title": {
+            "ja": "猫猫と毛毛",
+            "en": "Maomao and Maomao",
+            "de": "Maomao und Maomao",
+            "x-jat": "Maomao to Maomao"
+          },
+          "airDate": "2025-01-10",
+          "airDateUtc": "2025-01-10T14:00:00Z",
+          "runtime": 24,
+          "overview": "The spring garden party concludes without incident. Maomao returns to her regular life as Concubine Gyokuyou’s taster. Meanwhile, novels become popular in the rear palace. Maomao wonders how this came to be, as novels were typically considered low-class. But behind the scenes lies Jinshi and his goals as manager of the rear palace.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/10400908/screencap/677f93cd0265e.jpg",
+          "episode": "1",
+          "anidbEid": 290118,
+          "length": 25,
+          "airdate": "2025-01-10",
+          "rating": "7.91",
+          "summary": "The spring garden party concludes without incident. Maomao returns to her regular life as Concubine Gyokuyou’s taster. Meanwhile, novels become popular in the rear palace. Maomao wonders how this came to be, as novels were typically considered low-class. But behind the scenes lies Jinshi and his goals as manager of the rear palace.\nSource: Crunchyroll"
+        },
+        "2": {
+          "tvdbShowId": 431162,
+          "tvdbId": 10756303,
+          "seasonNumber": 2,
+          "episodeNumber": 2,
+          "absoluteEpisodeNumber": 26,
+          "title": {
+            "ja": "隊商[キャラバン]",
+            "en": "Caravan",
+            "de": "Die Karawane",
+            "x-jat": "Caravan"
+          },
+          "airDate": "2025-01-17",
+          "airDateUtc": "2025-01-17T14:00:00Z",
+          "runtime": 24,
+          "overview": "The caravan stirs up excitement in the inner palace. The merchants bring all kinds of goods. However, something gives Maomao a bad feeling.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/10756303/screencap/6788d3436ce7c.jpg",
+          "episode": "2",
+          "anidbEid": 290119,
+          "length": 25,
+          "airdate": "2025-01-17",
+          "rating": "8.50",
+          "summary": "The caravan stirs up excitement in the inner palace. The merchants bring all kinds of goods. However, something gives Maomao a bad feeling.\nSource: Crunchyroll"
+        },
+        "3": {
+          "tvdbShowId": 431162,
+          "tvdbId": 10756304,
+          "seasonNumber": 2,
+          "episodeNumber": 3,
+          "absoluteEpisodeNumber": 27,
+          "title": {
+            "ja": "冬人夏草",
+            "en": "Corpse Fungus",
+            "x-jat": "Toujin Kasou"
+          },
+          "airDate": "2025-01-24",
+          "airDateUtc": "2025-01-24T14:00:00Z",
+          "runtime": 24,
+          "overview": "A concubine passes away, and a woman goes missing. Jinshi sends Maomao to investigate - not these incidents, but mushrooms growing in the rear palace.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/10756304/screencap/67920f4443061.jpg",
+          "episode": "3",
+          "anidbEid": 290120,
+          "length": 25,
+          "airdate": "2025-01-24",
+          "rating": "8.50",
+          "summary": "A concubine passes away, and a woman goes missing. Jinshi sends Maomao to investigate - not these incidents, but mushrooms growing in the rear palace.\nSource: Crunchyroll"
+        },
+        "4": {
+          "tvdbShowId": 431162,
+          "tvdbId": 10756305,
+          "seasonNumber": 2,
+          "episodeNumber": 4,
+          "absoluteEpisodeNumber": 28,
+          "title": {
+            "ja": "鏡",
+            "en": "Mirrors",
+            "de": "Spiegel",
+            "x-jat": "Kagami"
+          },
+          "airDate": "2025-01-31",
+          "airDateUtc": "2025-01-31T14:00:00Z",
+          "runtime": 24,
+          "overview": "The special envoy from a foreign land gifts mirrors - a rarity in this country - to the high concubines. However, they bring mysteries as well.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/10756305/screencap/679b6f8230914.jpg",
+          "episode": "4",
+          "anidbEid": 290121,
+          "length": 25,
+          "airdate": "2025-01-31",
+          "rating": "7.71",
+          "summary": "The special envoy from a foreign land gifts mirrors - a rarity in this country - to the high concubines. However, they bring mysteries as well.\nSource: Crunchyroll"
+        }
+      }
+    },
+    "195516": {
+      "mappings": {
+        "animeplanet_id": "the-apothecary-diaries-3rd-season",
+        "kitsu_id": 50021,
+        "mal_id": 61987,
+        "type": "TV",
+        "anilist_id": 195516,
+        "anisearch_id": 20704,
+        "anidb_id": 19444,
+        "notifymoe_id": null,
+        "livechart_id": 13226,
+        "thetvdb_id": 431162,
+        "imdb_id": "tt26743760",
+        "themoviedb_id": "220542"
+      },
+      "episodes": {
+        "1": {
+          "tvdbShowId": 431162,
+          "tvdbId": 11234777,
+          "seasonNumber": 3,
+          "episodeNumber": 1,
+          "absoluteEpisodeNumber": 49,
+          "title": {
+            "ja": "蝗",
+            "en": "Locusts",
+            "x-jat": "Inago"
+          },
+          "airDate": "2026-10-02",
+          "airDateUtc": "2026-10-02T14:00:00Z",
+          "runtime": 24,
+          "overview": "A locust plague is looming, and mysteriously, a book on insects belonging to the Shi clan appears.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/11234777/screencap/6abe27389f17e.jpg",
+          "episode": "1",
+          "anidbEid": 316591,
+          "length": 25,
+          "airdate": "2026-10-02",
+          "rating": "7.34"
+        },
+        "2": {
+          "tvdbShowId": 431162,
+          "tvdbId": 12009011,
+          "seasonNumber": 3,
+          "episodeNumber": 2,
+          "absoluteEpisodeNumber": 50,
+          "title": {
+            "ja": "火鼠の皮衣",
+            "en": "Fire Rat`s Cloak",
+            "x-jat": "Hinezumi no Kawagoromo"
+          },
+          "airDate": "2026-10-09",
+          "airDateUtc": "2026-10-09T14:00:00Z",
+          "runtime": 24,
+          "overview": "An interesting cloak points Maomao's imagination towards international politics.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/12009011/screencap/6ac7676b19473.jpg",
+          "episode": "2",
+          "anidbEid": 316592,
+          "length": 25,
+          "airdate": "2026-10-09",
+          "rating": "7.91"
+        },
+        "3": {
+          "tvdbShowId": 431162,
+          "tvdbId": 12009012,
+          "seasonNumber": 3,
+          "episodeNumber": 3,
+          "absoluteEpisodeNumber": 51,
+          "title": {
+            "ja": "麺麭[パン]がなければ",
+            "en": "Let Them Eat Cake",
+            "x-jat": "Pan ga Nakereba"
+          },
+          "airDate": "2026-10-16",
+          "airDateUtc": "2026-10-16T14:00:00Z",
+          "runtime": 24,
+          "overview": "Maomao treats a sick girl, but food poisoning and malnutrition are not the true problems that need solving.",
+          "image": "https://artworks.thetvdb.com/banners/v4/episode/12009012/screencap/6ad09e68d347a.jpg",
+          "episode": "3",
+          "anidbEid": 316593,
+          "length": 25,
+          "airdate": "2026-10-16",
+          "rating": "9.27"
+        },
+        "4": {
+          "tvdbShowId": 431162,
+          "tvdbId": 12009013,
+          "seasonNumber": 3,
+          "episodeNumber": 4,
+          "absoluteEpisodeNumber": 52,
+          "title": {
+            "en": null
+          },
+          "airDate": "2026-10-23",
+          "airDateUtc": "2026-10-23T14:00:00Z",
+          "runtime": 24,
+          "episode": "4",
+          "anidbEid": 316594,
+          "length": 25,
+          "airdate": "2026-10-23"
+        }
+      }
+    },
+    "200927": {
+      "mappings": {
+        "animeplanet_id": null,
+        "kitsu_id": null,
+        "mal_id": 62841,
+        "type": "TV",
+        "anilist_id": 200927,
+        "anisearch_id": null,
+        "anidb_id": null,
+        "notifymoe_id": null,
+        "livechart_id": null,
+        "thetvdb_id": null,
+        "imdb_id": null,
+        "themoviedb_id": null
+      },
+      "episodes": {}
+    }
+  }
+}

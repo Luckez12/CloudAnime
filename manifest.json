@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "scrapers": [
     {
       "id": "allanime",
@@ -488,7 +488,7 @@
       "id": "reanime",
       "name": "Reanime",
       "description": "Anime · Japanese Sub · HD-1 + HD-2 · Provider-defined HLS instructions v1",
-      "version": "2.0.3",
+      "version": "2.0.4",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -510,7 +510,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Preserves each published Sub server/profile independently, including HD-1 and HD-2 sharing one access ID. Two extractions at a time; stable website server order. Uses generic provider HLS instructions rather than Flix-specific app support. Requires updated generic HLS VUEO app patch. No search/Cinemeta/download-progress calls in normal mapping path.",
+      "notes": "Removes TMDB episode request incompatible with VUEO metadata broker. Ambiguous season mapping requires explicit ARM same-number TMDB/TVDB season link plus matching AniZip TMDB/TVDB/AniList identities and exact TVDB episode. No title hardcoding, dates, fuzzy match, first-result fallback or guessed absolute offsets. Unresolved/conflicting cases skip. Extraction unchanged.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
