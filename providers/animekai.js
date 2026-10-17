@@ -1,4 +1,4 @@
-/* CloudAnime AnimeKai v2.0.0 — animekai.li published MegaVid MAL route, Sub only. */
+/* CloudAnime AnimeKai v2.0.1 — animekai.li published MegaVid MAL route, Sub only. */
 (function () {
   "use strict";
   var SITE = "https://megavid.buzz";
@@ -267,7 +267,7 @@
       // avoids loading the player HTML or performing any title search.
       var path = "/mal/" + mapped.id + "/" + mapped.ep + "/sub";
       var page = SITE + path;
-      var api = page + "/source";
+      var api = page + "/source?noax=1";
       var headers = { "User-Agent": UA, Referer: page, Origin: SITE };
       var data = await json(
         api,
@@ -276,6 +276,12 @@
       if (!data || data.status !== "ok")
         throw Error(
           "Source unavailable: " + String((data && data.status) || "unknown"),
+        );
+      // The website's own fallback bypasses the Animex relay. Some later
+      // segments on that relay return HTTP403 although the master is valid.
+      if (data.animex === true)
+        throw Error(
+          "Website fallback unavailable; rejected relay not returned",
         );
       if (
         data.type &&
@@ -323,7 +329,7 @@
       });
       log(
         "EXTRACT",
-        "Master HLS verified; MAL/Sub route; " +
+        "Website fallback master HLS verified; MAL/Sub route; " +
           subtitles.length +
           " subtitle tracks supplied",
       );

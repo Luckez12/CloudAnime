@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.11",
+  "version": "1.8.12",
   "scrapers": [
     {
       "id": "allanime",
@@ -42,7 +42,7 @@
       "id": "animekai",
       "name": "AnimeKai",
       "description": "Anime · Japanese Sub · AnimeKai.li / MegaVid · HTTP only",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -64,7 +64,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Rebuilt from animekai.li published MegaVid MAL/Sub player routes. Exact ARM/AniZip episode mapping, no title search or guessed offsets. Calls the published exact MAL/episode/Sub source JSON directly, validates one master HLS, forwards supplied English/Malay/Indo subtitle tracks. No old www3.anikai.cc, Dub calls, mirror fan-out, crypto proxy or WebView. Generic existing shared HTTP transport only. Live video master/child/TS verified; sampled default English subtitle URL was not retrievable in the build environment. Android playback and subtitle rendering remain unconfirmed.",
+      "notes": "Uses the website-published noax=1 source fallback to avoid the Animex relay. User logs and live replay confirmed HTTP403 on later video segments for MAL54492/42249 while root/early video loaded; refresh=1 did not fix the sampled failures. Fallback segments at corresponding playback positions returned HTTP206 MPEG-TS. Discovery remains exact ARM/AniZip mapping plus source JSON and master HLS; no extra segment/subtitle probes or app-specific logic. Three HTTP calls for a unique season. Android confirmation remains pending for this fallback fix.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [],
