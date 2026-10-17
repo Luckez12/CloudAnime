@@ -1,4 +1,4 @@
-/* CloudAnime Ani.pm v1.0.3 — standalone runtime provider. */
+/* CloudAnime Ani.pm v1.0.4 — standalone runtime provider. */
 /* Cloudbank anime mapping adapter. No Node globals or runtime imports. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
@@ -324,7 +324,7 @@ async function getStreams(id,type,season,episode){
    }
    var master=hls.find(function(s){return s.master;}),selected=master?[master]:hls.length?hls:mp4;
    if(closed)return;
-   selected.forEach(function(s){streams.push({name:'Ani.pm',title:match.core.title||mapped.anime_title,url:s.url,type:s.type,mimeType:s.type==='hls'?'application/x-mpegURL':'video/mp4',quality:s.quality,server:channel==='subhard'?'Ani.pm Hardsub':'Ani.pm Softsub',audioLanguage:'ja',audioType:'sub',subtitleType:channel==='subhard'?'hardsub':'softsub',headers:headers,subtitles:tracks});});
+   selected.forEach(function(s){streams.push({name:'Ani.pm',title:match.core.title||mapped.anime_title,url:s.url,type:s.type,mimeType:s.type==='hls'?'application/x-mpegURL':'video/mp4',quality:s.quality,server:channel==='subhard'?'Ani.pm Hardsub':'Ani.pm Softsub',audioLanguage:'ja',audioType:'sub',subtitleType:channel==='subhard'?'hardsub':'softsub',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:tracks});});
    log('EXTRACT',channel+': '+selected.length+' sources, '+tracks.length+' external subs'+(master?', master HLS verified':''));
   }catch(e){log('EXTRACT',channel+': '+e.message);}}));
  }

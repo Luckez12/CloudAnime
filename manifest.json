@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "scrapers": [
     {
       "id": "allanime",
@@ -650,7 +650,7 @@
       "id": "anipm",
       "name": "Ani.pm",
       "description": "Anime · Japanese audio · Sub only · Softsub/Hardsub HLS",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
