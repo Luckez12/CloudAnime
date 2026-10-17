@@ -1,4 +1,4 @@
-/* CloudAnime Reanime v2.0.4 — direct identity route; requires VUEO provider HLS instructions v1. */
+/* CloudAnime Reanime v2.0.5 — direct identity route; requires VUEO provider HLS instructions v1. */
 (function () {
   "use strict";
   var SITE = "https://reanime.to",
@@ -272,40 +272,105 @@
         : rows.filter(function (r) {
             return r["themoviedb-season"] == null;
           });
-      if (!candidates.length || candidates.length > 4) return null;
+      // Candidate count is not a matching rule. Filter evidence before network work.
+      var candidateSeen = Object.create(null);
+      candidates = candidates.filter(function (r) {
+        if (
+          r["themoviedb-season"] == null ||
+          r["thetvdb-season"] == null ||
+          Number(r["themoviedb-season"]) !== season ||
+          Number(r["thetvdb-season"]) !== season ||
+          !positive(r.thetvdb)
+        )
+          return false;
+        var key = [r.anilist, r.thetvdb, Number(r["thetvdb-season"])].join(":");
+        if (candidateSeen[key]) return false;
+        candidateSeen[key] = true;
+        return true;
+      });
+      if (!candidates.length) {
+        log(
+          "MAPPING",
+          "No explicit ARM season-order bridge for requested season",
+        );
+        return null;
+      }
       var tmdb = positive(id) || positive(candidates[0].themoviedb);
       if (!tmdb) return null;
       // VUEO's metadata-only broker does not provide episode details here.
       // Do not request TMDB episodes or mistake a series-shaped body for one.
-      var datasets = await Promise.all(candidates.map(function (r) {
-        return metadata("https://api.ani.zip/mappings?anilist_id=" + r.anilist)
-          .catch(function () { return null; });
-      }));
-      var matches = [], seenMatches = Object.create(null);
+      var datasetById = Object.create(null),
+        ids = [];
+      candidates.forEach(function (r) {
+        var key = String(r.anilist);
+        if (ids.indexOf(key) < 0) ids.push(key);
+      });
+      // Bound concurrency, never discard candidates solely because there are many.
+      for (var offset = 0; offset < ids.length; offset += 4) {
+        await Promise.all(
+          ids.slice(offset, offset + 4).map(async function (key) {
+            datasetById[key] = await metadata(
+              "https://api.ani.zip/mappings?anilist_id=" + key,
+            ).catch(function () {
+              return null;
+            });
+          }),
+        );
+      }
+      var datasets = candidates.map(function (r) {
+        return datasetById[String(r.anilist)];
+      });
+      var matches = [],
+        seenMatches = Object.create(null);
       datasets.forEach(function (d, i) {
         var r = candidates[i];
         // This bridge is allowed only when ARM explicitly equates the two season numbers.
         // Never assume TVDB ordering equals TMDB ordering for an unlinked season.
-        if (r["themoviedb-season"] == null || r["thetvdb-season"] == null ||
-            Number(r["themoviedb-season"]) !== season ||
-            Number(r["thetvdb-season"]) !== season || !positive(r.thetvdb)) return;
-        if (!d || !d.mappings ||
-            Number(d.mappings.anilist_id) !== Number(r.anilist) ||
-            String(d.mappings.themoviedb_id) !== String(tmdb) ||
-            Number(d.mappings.thetvdb_id) !== Number(r.thetvdb)) return;
+        if (
+          r["themoviedb-season"] == null ||
+          r["thetvdb-season"] == null ||
+          Number(r["themoviedb-season"]) !== season ||
+          Number(r["thetvdb-season"]) !== season ||
+          !positive(r.thetvdb)
+        )
+          return;
+        if (
+          !d ||
+          !d.mappings ||
+          Number(d.mappings.anilist_id) !== Number(r.anilist) ||
+          String(d.mappings.themoviedb_id) !== String(tmdb) ||
+          Number(d.mappings.thetvdb_id) !== Number(r.thetvdb)
+        )
+          return;
         Object.keys(d.episodes || {}).forEach(function (key) {
           var e = d.episodes[key];
-          if (!e || !positive(e.episode) || e.seasonNumber == null || e.episodeNumber == null ||
-              Number(e.tvdbShowId) !== Number(r.thetvdb) ||
-              Number(e.seasonNumber) !== season || Number(e.episodeNumber) !== episode) return;
+          if (
+            !e ||
+            !positive(e.episode) ||
+            e.seasonNumber == null ||
+            e.episodeNumber == null ||
+            Number(e.tvdbShowId) !== Number(r.thetvdb) ||
+            Number(e.seasonNumber) !== season ||
+            Number(e.episodeNumber) !== episode
+          )
+            return;
           var matchKey = r.anilist + ":" + Number(e.episode);
           if (seenMatches[matchKey]) return;
           seenMatches[matchKey] = true;
-          matches.push({ id: Number(r.anilist), ep: Number(e.episode),
-            method: "ARM linked season + AniZip exact episode" });
+          matches.push({
+            id: Number(r.anilist),
+            ep: Number(e.episode),
+            method: "ARM linked season + AniZip exact episode",
+          });
         });
       });
-      if (matches.length !== 1) log("MAPPING", "Linked episode candidates=" + matches.length + "; no safe TMDB episode metadata fallback");
+      if (matches.length !== 1)
+        log(
+          "MAPPING",
+          "Linked episode candidates=" +
+            matches.length +
+            "; no safe TMDB episode metadata fallback",
+        );
       return matches.length === 1 ? matches[0] : null;
     }
     async function extract(embed, mapped, server) {
