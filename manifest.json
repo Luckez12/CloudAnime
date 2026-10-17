@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "scrapers": [
     {
       "id": "allanime",
@@ -488,7 +488,7 @@
       "id": "reanime",
       "name": "Reanime",
       "description": "Anime · Japanese Sub · HD-1 + HD-2 · Provider-defined HLS instructions v1",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",

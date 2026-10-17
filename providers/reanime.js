@@ -1,4 +1,4 @@
-/* CloudAnime Reanime v2.0.2 — direct identity route; requires VUEO provider HLS instructions v1. */
+/* CloudAnime Reanime v2.0.3 — direct identity route; requires VUEO provider HLS instructions v1. */
 (function () {
   "use strict";
   var SITE = "https://reanime.to",
@@ -328,11 +328,43 @@
               ) >= 0
             );
           });
+        // Multi-episode premieres share a date. Require an exact episode title
+        // to distinguish them, using metadata already loaded for this request.
+        var usedTitle = false;
+        if (es.length > 1) {
+          function titleKey(value) {
+            if (typeof value !== "string") return "";
+            return value
+              .toLowerCase()
+              .replace(
+                /[\s.,!?;:'"’“”()\[\]{}\-–—_、。！？：；「」『』]+/g,
+                "",
+              );
+          }
+          var requestedTitle = titleKey(epData.name);
+          if (requestedTitle) {
+            es = es.filter(function (e) {
+              var titles = e.title;
+              if (typeof titles === "string")
+                return titleKey(titles) === requestedTitle;
+              return (
+                titles &&
+                typeof titles === "object" &&
+                Object.keys(titles).some(function (language) {
+                  return titleKey(titles[language]) === requestedTitle;
+                })
+              );
+            });
+            usedTitle = true;
+          }
+        }
         if (es.length === 1)
           matches.push({
             id: Number(candidates[i].anilist),
             ep: Number(es[0].episode),
-            method: "ambiguous season + exact episode date",
+            method: usedTitle
+              ? "exact episode date + title"
+              : "ambiguous season + exact episode date",
           });
       });
       return matches.length === 1 ? matches[0] : null;
