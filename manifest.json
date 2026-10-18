@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.17",
+  "version": "1.8.18",
   "scrapers": [
     {
       "id": "allanime",
@@ -210,8 +210,8 @@
     {
       "id": "animesalt",
       "name": "AnimeSalt",
-      "description": "Anime · Japanese Sub · Ravok HLS · named episode cards and verified season mapping",
-      "version": "2.1.1",
+      "description": "Anime · Japanese Sub · Ravok + MegaPlay · verified episode mapping",
+      "version": "2.2.0",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -229,16 +229,18 @@
         "ms",
         "id"
       ],
-      "runtimeTimeoutMs": 64000,
+      "runtimeTimeoutMs": 20000,
       "upstreamSupportedTypes": [
         "movie",
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Ravok Japanese HLS. Exact episode coordinates parsed from site links and confirmed on episode pages, including named episode cards. Verified Black Clover TMDB season 1 and Bleach TYBW season 2 part mappings with site range/count checks. Uses website GET season-list route. No new metadata requests. Generic VUEO SRT patch remains applicable.",
+      "notes": "Ravok Japanese HLS plus exact AnimeSalt MegaPlay Sub embeds. Local public-website AES-CBC decoding via existing CryptoJS support, validated HLS, website-published CDN failover, and English/Malay/Indonesian sidecars. Dub embeds excluded. Verified Black Clover/Bleach mapping retained. No app or metadata-network changes. Generic VUEO SRT patch remains applicable.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": [],
+      "runtimeModules": [
+        "crypto-js"
+      ],
       "hasSettings": false,
       "sourceWebsite": "https://animesalt.cx"
     },

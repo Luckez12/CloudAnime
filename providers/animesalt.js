@@ -1,4 +1,4 @@
-/* CloudAnime AnimeSalt v2.1.1 — exact title/year and episode, Ravok Japanese HLS. */
+/* CloudAnime AnimeSalt v2.2.0 — exact title/year and episode, Ravok Japanese HLS. */
 (function () {
   "use strict";
   var SITE = "https://animesalt.cx";
@@ -79,7 +79,7 @@
   async function getStreams(id,type,season,episode) {
     id=String(id||'');type=type==='series'?'tv':type;season=Number(season);episode=type==='movie'?1:Number(episode);
     if(!/^\d+$/.test(id)||!['tv','movie'].includes(type)||(type==='tv'&&(!Number.isInteger(season)||season<0||!positive(episode))))return [];
-    var deadline=Date.now()+45000,calls=0,searchPages=[];
+    var deadline=Date.now()+18000,calls=0,searchPages=[];
     async function text(url,headers,body) {
       var left=Math.min(10000,deadline-Date.now());if(left<=0)throw Error('Request budget exhausted');
       var timer,controller=typeof AbortController==='function'?new AbortController():null;calls++;
@@ -177,10 +177,7 @@
       if(!m||Number(m[1])!==targetSeason||Number(m[2])!==targetEpisode)throw Error('Episode number mismatch');
       return {url:url,html:page,title:found.title};
     }
-    async function extract(page){
-      var frames=page.html.match(/<iframe\b[^>]*>/gi)||[],players=[];
-      frames.forEach(function(tag){var url=address(attr(tag,'data-src')||attr(tag,'src'),page.url);if(!url)return;var u=new URL(url),m=/^\/video\/([0-9a-f]{32})\/?$/i.exec(u.pathname);if(m&&!players.some(function(p){return p.url===url;}))players.push({url:url,id:m[1],origin:u.origin});});
-      if(!players.length){var hosts=[];frames.forEach(function(t){var u=address(attr(t,'data-src')||attr(t,'src'),page.url);if(u){var host=new URL(u).hostname;if(!hosts.includes(host))hosts.push(host);}});noMatch('No supported Ravok player on this episode; site player hosts='+hosts.join(',')+'; other servers are not extracted');}
+    async function extractRavok(page,players){
       return (await Promise.all(players.slice(0,2).map(async function(p){try{
         var headers={'User-Agent':UA,Referer:p.url,Origin:p.origin};
         var results=await Promise.all([text(p.url,{Referer:page.url}),text(p.origin+'/player/index.php?data='+p.id+'&do=getVideo',Object.assign({},headers,{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'}),'hash='+p.id+'&r='+encodeURIComponent(page.url))]);
@@ -196,16 +193,89 @@
         return {name:'AnimeSalt',provider:'animesalt',serverName:'Ravok',title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+' • Japanese Sub',url:url+'#vueo_hls_v1=plain&audio=ja,jp,jpn,japanese',type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:'sub',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)};
       }catch(e){log('SOURCE','Ravok: '+e.message);return null;}}))).filter(Boolean);
     }
+    function decryptMega(data) {
+      if(!data||typeof data!=='object')throw Error('Invalid source payload');
+      if(typeof data.enc!=='string')return data;
+      if(data.enc.length>1000000||!/^[A-Za-z0-9_+/=-]+$/.test(data.enc))throw Error('Invalid source ciphertext');
+      var C=require('crypto-js');
+      // Public MegaPlay AES-CBC codec, verified against the current website payload.
+      var key=C.enc.Hex.parse(C.enc.Utf8.parse('i?LMTAx0Q6,:}50U').toString(C.enc.Hex).padEnd(64,'0'));
+      var plain=C.AES.decrypt({ciphertext:C.enc.Base64.parse(data.enc.replace(/-/g,'+').replace(/_/g,'/'))},key,{iv:C.enc.Utf8.parse("W0;27ToaUpl_P%'c"),mode:C.mode.CBC,padding:C.pad.Pkcs7}).toString(C.enc.Utf8);
+      var decoded=JSON.parse(plain);
+      if(!decoded||typeof decoded!=='object'||Array.isArray(decoded))throw Error('Invalid decrypted source payload');
+      return Object.assign({},data,decoded);
+    }
+    async function extractMega(page,p) {
+      var html=await text(p.url,{Referer:page.url});
+      if(!/\btype\s*:\s*["']sub["']/.test(html))throw Error('Embed did not confirm Sub channel');
+      var tags=html.match(/<[^!][^>]*>/g)||[],player=tags.find(function(t){return attr(t,'id')==='megaplay-player';});
+      var playerId=player&&attr(player,'data-id'),realId=player&&attr(player,'data-realid');
+      if(!/^\d{1,12}$/.test(playerId||'')||!positive(playerId))throw Error('Episode player unavailable');
+      if(!/^\d{1,12}$/.test(realId||'')||positive(realId)!==positive(p.realId))throw Error('Embed episode identity mismatch');
+      var api=p.origin+'/stream/getSources?id='+playerId+'&id='+playerId,hint=new URL(p.url).searchParams.get('s');
+      if(hint&&/^[a-z0-9_-]{1,32}$/i.test(hint))api+='&s='+encodeURIComponent(hint);
+      var data=decryptMega(JSON.parse(await text(api,{Referer:p.url,Origin:p.origin,'X-Requested-With':'XMLHttpRequest'})));
+      var raw=[];
+      if(typeof data.file==='string')raw.push(data.file);
+      if(data.sources)raw=raw.concat(Array.isArray(data.sources)?data.sources:[data.sources]);
+      var seen=Object.create(null),sources=raw.map(function(v){return address(typeof v==='string'?v:v&&(v.file||v.url),p.url);}).filter(function(u){if(!u||seen[u])return false;seen[u]=true;return true;}).slice(0,4);
+      if(!sources.length)throw Error('No source URLs in decoded response');
+      var headers={'User-Agent':UA,Referer:p.origin+'/',Origin:p.origin},selected=null,health=null,healthTried=false;
+      async function verify(url) {
+        var body=(await text(url,headers)).replace(/^\uFEFF/,'').trim();
+        if(!/^#EXTM3U(?:\r?\n|$)/.test(body)||!/#EXT-X-STREAM-INF:|#EXTINF:/.test(body))throw Error('Source response is not playable HLS');
+        var refs=body.split(/\r?\n/).map(function(v){return v.trim();}).filter(function(v){return v&&v[0]!=='#';});
+        if(!refs.length||refs.some(function(v){return !address(v,url);}))throw Error('Invalid HLS media references');
+        var audio=body.split(/\r?\n/).filter(function(l){return /^#EXT-X-MEDIA:/.test(l)&&hlsAttr(l,'TYPE')==='AUDIO';}),filter=false;
+        if(audio.length){var ja=audio.filter(function(l){return /^(?:ja|jp|jpn|japanese)$/i.test(hlsAttr(l,'LANGUAGE'));});if(ja.length!==1||!address(hlsAttr(ja[0],'URI'),url))throw Error('No unique Japanese HLS audio rendition');filter=true;}
+        return {url:url,master:/#EXT-X-STREAM-INF:/.test(body),filterAudio:filter};
+      }
+      for(var i=0;i<sources.length;i++) {
+        var candidate=null;
+        try{candidate=await verify(sources[i]);}catch(error){
+          log('SOURCE','MegaPlay original HLS: '+error.message);
+          if(!healthTried){healthTried=true;try{health=JSON.parse(await text(p.origin+'/lib/check_domain.json',{Referer:p.url}));}catch(e){log('CDN','MegaPlay health unavailable: '+e.message);}}
+          var host=health&&typeof health.fallback==='string'?health.fallback.toLowerCase():'',original=new URL(sources[i]);
+          if(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(host)&&host!==original.hostname){
+            try{candidate=await verify('https://'+host+original.pathname+original.search);log('CDN','MegaPlay website-declared fallback HLS verified');}catch(e){log('SOURCE','MegaPlay fallback HLS: '+e.message);}
+          }
+        }
+        if(candidate&&(!selected||candidate.master))selected=candidate;
+        if(selected&&selected.master)break;
+      }
+      if(!selected)throw Error('No verified MegaPlay HLS source');
+      var tracks=Array.isArray(data.tracks)?data.tracks:[],subtitles=[],trackSeen=Object.create(null);
+      tracks.forEach(function(t){if(!t||!/^(?:captions|subtitles)$/.test(t.kind||''))return;var lang=language(t),u=address(t.file||t.url,p.url);if(!lang||!u||trackSeen[u])return;trackSeen[u]=true;var path=new URL(u).pathname;subtitles.push({url:u,language:lang,name:lang==='en'?'English':lang==='ms'?'Malay':'Indo',mimeType:/\.(?:ass|ssa)$/i.test(path)?'text/x-ssa':/\.srt$/i.test(path)?'application/x-subrip':'text/vtt',headers:headers});});
+      log('EXTRACT','MegaPlay '+(selected.master?'master':'media')+' HLS verified; exact Sub embed; '+subtitles.length+' subtitle tracks');
+      return [{name:'AnimeSalt',provider:'animesalt',serverName:'MegaPlay',title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+' • Japanese Sub',url:selected.url+(selected.filterAudio?'#vueo_hls_v1=plain&audio=ja,jp,jpn,japanese':''),type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:'sub',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)}];
+    }
+    async function extract(page) {
+      var frames=page.html.match(/<iframe\b[^>]*>/gi)||[],ravok=[],mega=[],hosts=[];
+      frames.forEach(function(tag){
+        var url=address(attr(tag,'data-src')||attr(tag,'src'),page.url);if(!url)return;
+        var u=new URL(url),r=/^\/video\/([0-9a-f]{32})\/?$/i.exec(u.pathname),m=/^\/stream\/s-\d+\/(\d{1,12})\/sub\/?$/.exec(u.pathname);
+        if(!hosts.includes(u.hostname))hosts.push(u.hostname);
+        if(r&&!ravok.some(function(p){return p.url===url;}))ravok.push({url:url,id:r[1],origin:u.origin});
+        if(u.hostname==='megaplay.buzz'&&m&&!mega.some(function(p){return p.url===url;}))mega.push({url:url,realId:m[1],origin:u.origin});
+      });
+      if(!ravok.length&&!mega.length)noMatch('No supported Ravok or MegaPlay Sub player; site player hosts='+hosts.join(','));
+      log('PLAYERS','Ravok='+ravok.length+'; MegaPlay Sub='+mega.length+'; Dub embeds excluded');
+      var jobs=[];
+      if(ravok.length)jobs.push(extractRavok(page,ravok));
+      mega.slice(0,2).forEach(function(p){jobs.push(extractMega(page,p).catch(function(e){log('SOURCE','MegaPlay: '+e.message);return [];}));});
+      var groups=await Promise.all(jobs),all=[],seen=Object.create(null);
+      groups.forEach(function(group){group.forEach(function(s){if(!seen[s.url]){seen[s.url]=true;all.push(s);}});});
+      return all;
+    }
     var streams=[];
     try{
       var meta=await metadata(),found,route={season:season,episode:episode};
       try{found=await findTitle(meta);}catch(e){
         if(e.name!=='AnimeSaltNoMatch'||e.message.indexOf('No exact title/year match')!==0||type!=='tv'||season<=1)throw e;
-        deadline+=15000;
         log('MAPPING','Main title unavailable; checking verified requested-season mapping');
         var scoped=scopedSeason(meta);found=await findTitle(scoped);route=mappedRoute(found,scoped);
       }
-      if(!scoped&&VERIFIED_SEASON_MAPPINGS[id+':'+season]){var direct=scopedSeason(meta);if(normal(found.title)!==normal(direct.title))noMatch('Verified mapped series title mismatch');route=mappedRoute(found,direct);if(route.season!==season||route.episode!==episode)deadline+=15000;}
+      if(!scoped&&VERIFIED_SEASON_MAPPINGS[id+':'+season]){var direct=scopedSeason(meta);if(normal(found.title)!==normal(direct.title))noMatch('Verified mapped series title mismatch');route=mappedRoute(found,direct);}
       log('MATCH',found.title+' ('+meta.year+'); '+(route.season===season&&route.episode===episode?'exact title/year':'season-scoped mapping'));
       var page=await episodePage(found,route);
       if(type==='tv')log('EPISODE','Requested TMDB S'+season+'E'+episode+'; verified site S'+route.season+'E'+route.episode);
