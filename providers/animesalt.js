@@ -1,1034 +1,140 @@
-/* CLOUDANIME_SUB_ONLY_V1: inspect upstream labels before display formatting. */
-function cloudAnimeAudioDecision(stream) {
-  if (!stream || typeof stream !== 'object') return 'invalid';
-  function clean(value) { return typeof value === 'string' ? value.trim().toLowerCase() : ''; }
-  function japanese(value) { return /^(ja|jp|jpn|japanese|日本語)$/.test(clean(value)); }
-  var audio = clean(stream.audioLanguage || stream.audio_language || (typeof stream.audio === 'string' ? stream.audio : stream.audio && (stream.audio.language || stream.audio.lang))); 
-  var tracks = Array.isArray(stream.audioLanguages) ? stream.audioLanguages : Array.isArray(stream.audioTracks) ? stream.audioTracks.map(function(track) { return track && (track.language || track.lang); }) : [];
-  if (audio && !japanese(audio)) return 'dub-or-unknown-audio';
-  if (tracks.length && !tracks.every(japanese)) return 'mixed-or-dub-audio';
-  var title = typeof stream.title === 'string' ? stream.title : '';
-  var name = typeof stream.name === 'string' ? stream.name : '';
-  // Content titles are not language evidence (e.g. a title containing "Dub").
-  var context = typeof globalThis !== 'undefined' && globalThis.VUEO_DISCOVERY_CONTEXT;
-  var tmdb = context && context.tmdb || {};
-  var contentTitles = [tmdb.title, tmdb.name, tmdb.original_title, tmdb.original_name, context && context.title];
-  contentTitles.forEach(function(value) {
-    if (typeof value === 'string' && value) title = title.split(value).join('');
-      name = name.split(value).join('');
-  });
-  var label = [name, title, stream.audioType, stream.audioFormat, stream.subDub,
-    stream.dubSub, stream.version, stream.audioLabel].map(clean).join(' ');
-  if (/\b(dub|dubbed|dual[ -]?audio|multi[ -]?audio|multilingual)\b/.test(label)) return 'dub-or-mixed';
-  if (/\b(hindi|tamil|telugu|korean|chinese|mandarin|french|arabic|spanish|portuguese)[ -]audio\b/.test(label)) return 'foreign-audio';
-  if (/\[(?:english|hindi|tamil|telugu|korean|chinese|mandarin|french|arabic|spanish|portuguese)\]/.test(label)) return 'foreign-audio';
-  if (/\benglish[ -]audio\b/.test(label)) return 'dub';
-  if (/🌍\s*(english|hindi|tamil|telugu|korean|chinese|mandarin|french|arabic|spanish|portuguese)\b/.test(label)) return 'foreign-audio';
-  var generic = clean(stream.language || stream.lang);
-  if (generic && !japanese(generic) && !/^(sub|subbed|dub|dubbed)$/.test(generic)) return 'dub-or-unknown-audio';
-  if (/^(dub|dubbed)$/.test(generic)) return 'dub';
-  if (japanese(audio) || (tracks.length && tracks.every(japanese)) || japanese(generic)) return 'sub';
-  if (/\b(sub|subbed|subtitled|hardsub|softsub)\b/.test(label) || /^(sub|subbed)$/.test(generic)) return 'sub';
-  if (/\b(japanese|jpn)\b/.test(label) || /🇯🇵/.test(label)) return 'sub';
-  return 'unknown-audio';
-}
-
-function cloudAnimeSubtitleLanguage(track) {
-  var values = [track.language, track.lang, track.srclang, track.name, track.label];
-  for (var i = 0; i < values.length; i++) {
-    var value = typeof values[i] === 'string' ? values[i].trim().toLowerCase() : '';
-    if (/^(en|eng|english)(?:\b|[-_])/.test(value)) return 'English';
-    if (/^(ms|msa|may|malay|bahasa melayu)(?:\b|[-_])/.test(value)) return 'Malay';
-    if (/^(id|ind|indo|indonesian|bahasa indonesia)(?:\b|[-_])/.test(value)) return 'Indo';
+/* CloudAnime AnimeSalt v2.0.0 — exact title/year and episode, Ravok Japanese HLS. */
+(function () {
+  "use strict";
+  var SITE = "https://animesalt.cx";
+  var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+  var cache = Object.create(null), cacheKeys = [];
+  function log(stage, message) { console.log("[AnimeSalt] " + stage + ": " + message); }
+  function positive(v) { var n=Number(v);return Number.isInteger(n)&&n>0?n:null; }
+  function decode(s) {
+    var named={amp:'&',quot:'"',apos:"'",lt:'<',gt:'>',nbsp:' ',ndash:'–',mdash:'—',lsquo:'‘',rsquo:'’',ldquo:'“',rdquo:'”',hellip:'…'};
+    return String(s||'').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,function(all,key){if(key[0]==='#'){var n=key[1].toLowerCase()==='x'?parseInt(key.slice(2),16):Number(key.slice(1));return n>0&&n<=1114111?String.fromCodePoint(n):all;}return named[key.toLowerCase()]||all;});
   }
-  return '';
-}
-
-function cloudAnimeFilterStreams(streams, providerId) {
-  if (!Array.isArray(streams)) return [];
-  var rejected = 0;
-  var result = streams.filter(function(stream) {
-    var decision = cloudAnimeAudioDecision(stream);
-    if (decision !== 'sub') { rejected++; return false; }
-    return true;
-  }).map(function(stream) {
-    var output = Object.assign({}, stream);
-    if (Array.isArray(stream.subtitles)) {
-      output.subtitles = stream.subtitles.filter(function(track) {
-        return track && typeof track.url === 'string' && /^https?:\/\//i.test(track.url) && cloudAnimeSubtitleLanguage(track);
-      }).map(function(track) {
-        var label = cloudAnimeSubtitleLanguage(track);
-        return Object.assign({}, track, { name: label, language: label === 'English' ? 'en' : label === 'Malay' ? 'ms' : 'id' });
-      });
-    }
-    return output;
-  });
-  if (rejected && typeof console !== 'undefined' && console.log) {
-    console.log('[CloudAnime:' + providerId + '] Sub-only: kept ' + result.length + ', excluded ' + rejected + ' dub/mixed/unknown audio results');
-  }
-  return result;
-}
-
-// Imported provider: animesalt; upstream commit 3f09a6ff4360498895e622877af7a32212f75038
-/* VUEO_SHARED_DISCOVERY_CONTEXT_V1 */
-function vueoSharedTmdb(url, fallback) {
-  function trace(stage, details) {
-    try {
-      if (typeof globalThis !== "undefined" && typeof globalThis.vueoTrace === "function") {
-        globalThis.vueoTrace(stage, details);
-      }
-    } catch (_) {}
-  }
-  function normalize(raw) {
-    if (typeof raw === "string") {
-      try { raw = JSON.parse(raw); } catch (_) { return null; }
-    }
-    if (!raw || typeof raw !== "object" || raw.error) return null;
-    var tmdb = raw.tmdb;
-    if (!tmdb || typeof tmdb !== "object") {
-      if (!raw.title || (raw.mediaType !== "movie" && raw.mediaType !== "tv")) return null;
-      var alternatives = Array.isArray(raw.aliases) ? raw.aliases.map(function(alias) {
-        return { title: String(alias), iso_3166_1: "" };
-      }) : [];
-      tmdb = {
-        id: raw.tmdbId,
-        title: raw.mediaType === "movie" ? raw.title : undefined,
-        name: raw.mediaType === "tv" ? raw.title : undefined,
-        original_title: raw.mediaType === "movie" ? (raw.originalTitle || raw.title) : undefined,
-        original_name: raw.mediaType === "tv" ? (raw.originalTitle || raw.title) : undefined,
-        release_date: raw.mediaType === "movie" && raw.year ? String(raw.year) + "-01-01" : "",
-        first_air_date: raw.mediaType === "tv" && raw.year ? String(raw.year) + "-01-01" : "",
-        external_ids: { imdb_id: raw.imdbId || "" },
-        alternative_titles: { titles: alternatives, results: alternatives }
-      };
-    }
-    if (!tmdb.title && !tmdb.name) return null;
-    trace("METADATA", { shared: true, title: raw.title || tmdb.title || tmdb.name || "",
-      year: raw.year || "", imdbId: raw.imdbId || "",
-      aliases: Array.isArray(raw.aliases) ? raw.aliases.length : 0 });
-    return tmdb;
-  }
-  function local() {
-    trace("METADATA_FALLBACK", { shared: false });
-    return Promise.resolve().then(fallback);
-  }
-  try {
-    if (typeof globalThis !== "undefined") {
-      var direct = normalize(globalThis.VUEO_DISCOVERY_CONTEXT);
-      if (direct) return Promise.resolve(direct);
-      if (typeof globalThis.vueoDiscoveryContext === "function") {
-        return Promise.resolve().then(function() {
-          return globalThis.vueoDiscoveryContext(url);
-        }).then(function(raw) {
-          var shared = normalize(raw);
-          return shared || local();
-        }, local);
-      }
-    }
-  } catch (_) {}
-  return local();
-}
-
-
-/* VUEO_TITLE_PROFILE_V1 */
-function buildTitleProfile(tmdb) {
-  var primary = String(tmdb.title || tmdb.name || "").trim();
-  var aliases = [];
-  function add(value) {
-    value = String(value || "").trim();
-    if (value && aliases.indexOf(value) === -1) aliases.push(value);
-  }
-  add(primary);
-  add(tmdb.original_title || tmdb.original_name);
-  var alternate = tmdb.alternative_titles || {};
-  (alternate.titles || alternate.results || []).forEach(function(item) { add(item.title); });
-  return { title: primary, aliases: aliases };
-}
-
-
-/* CLOUDBANK_NUVIO_ADAPTER_V1 */
-function cloudbankWrapProvider(provider, providerId, supportedTypes) {
-  var upstream = provider.getStreams;
-  var adapted = {};
-  Object.keys(provider).forEach(function(key) { adapted[key] = provider[key]; });
-  adapted.getStreams = function(tmdbId, mediaType, season, episode) {
-    var args = Array.prototype.slice.call(arguments);
-    var type = mediaType === "series" ? "tv" : mediaType;
-    if (supportedTypes.indexOf(type) === -1 || !String(tmdbId || "").trim()) return Promise.resolve([]);
-    if (type === "tv" && (!Number.isInteger(Number(season)) || Number(season) < 0 ||
-        !Number.isInteger(Number(episode)) || Number(episode) < 1)) return Promise.resolve([]);
-    args[0] = String(tmdbId);
-    args[1] = type;
-    if (type === "tv") { args[2] = Number(season); args[3] = Number(episode); }
-    return new Promise(function(resolve) {
-      var finished = false;
-      var timer = setTimeout(function() { finish([]); }, 19000);
-      function finish(value) {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timer);
-        var seen = Object.create(null);
-        var streams = Array.isArray(value) ? value.filter(function(stream) {
-          if (!stream || typeof stream.url !== "string" || !/^(https?:\/\/|magnet:)/i.test(stream.url)) return false;
-          if (cloudAnimeAudioDecision(stream) !== "sub") return false;
-          // Preserve separate audio/server entries sharing the same media URL.
-          var key = JSON.stringify([stream.url, stream.name, stream.headers, stream.subtitles]);
-          if (seen[key]) return false;
-          seen[key] = true;
-          return true;
-        }) : [];
-        resolve(streams);
-      }
-      Promise.resolve().then(function() { return upstream.apply(provider, args); }).then(finish, function() { finish([]); });
+  function textContent(s) {return decode(String(s||'').replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)>/gi,' ').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
+  function normal(s) {s=textContent(s).toLowerCase();if(typeof s.normalize==='function')s=s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');return s.replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g,'');}
+  function attr(tag,name) {var m=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(["\'])([\\s\\S]*?)\\1','i').exec(tag);return m?decode(m[2]):'';}
+  function address(s,base) {try{var u=new URL(decode(s),base);return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
+  function heading(html) {var m=/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html);return m?textContent(m[1]):'';}
+  function links(html) {var tags=html.match(/<a\b[^>]*>/gi)||[];return tags.map(function(tag){return {url:address(attr(tag,'href'),SITE),tag:tag};}).filter(function(v){return !!v.url;});}
+  function episodes(html,season,episode) {
+    var matches=[],articles=html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[];
+    articles.forEach(function(article){
+      var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);if(!h)return;
+      var m=/(?:^|\s)(\d+)x(\d+)\s*$/i.exec(textContent(h[1]));
+      if(!m||Number(m[1])!==season||Number(m[2])!==episode)return;
+      links(article).forEach(function(v){if(new URL(v.url).origin===SITE&&/^\/episode\/[^/]+\/?$/.test(new URL(v.url).pathname)&&!matches.includes(v.url))matches.push(v.url);});
     });
-  };
-  return adapted;
-}
-
-function cloudbankMetadataFetch(nativeFetch) {
-  return function(url, options) {
-    var text = typeof url === "string" ? url : url && url.url;
-    var match = typeof text === "string" && /^https:\/\/api\.themoviedb\.org\/3\/(movie|tv)\/(\d+)(?:\?|$)/.exec(text);
-    var method = options && options.method ? String(options.method).toUpperCase() : "GET";
-    if (!match || method !== "GET") return nativeFetch(url, options);
-    // Shared metadata covers details only; search/find/season/episode requests stay upstream.
-    var response;
-    return vueoSharedTmdb(text, function() {
-      return nativeFetch(url, options).then(function(value) {
-        response = value;
-        if (!value.ok) throw new Error("TMDB HTTP " + value.status);
-        return value.json();
-      });
-    }).then(function(tmdb) {
-      var profile = buildTitleProfile(tmdb);
-      if (!profile.title) throw new Error("TMDB title unavailable");
-      var body = JSON.stringify(tmdb);
-      return {
-        ok: true, status: 200, statusText: "OK", url: text,
-        headers: response ? response.headers : { get: function(name) {
-          return String(name).toLowerCase() === "content-type" ? "application/json" : null;
-        } },
-        json: function() { return Promise.resolve(JSON.parse(body)); },
-        text: function() { return Promise.resolve(body); }
-      };
-    });
-  };
-}
-
-(function() {
-  var originalModule = { exports: {} };
-  var originalRequire = typeof require === "function" ? require : null;
-  function portableRequire(name) {
-    if (name !== "crypto-js" && name !== "cheerio-without-node-native") throw new Error("Unsupported embedded module: " + name);
-    if (!originalRequire) throw new Error("Runtime module unavailable: " + name);
-    return originalRequire(name);
+    return matches.length===1?matches[0]:'';
   }
-  (function(module, exports, require, fetch, self) {
-/* CLOUDBANK_UPSTREAM_SOURCE_START */
-/**
- * animesalt - Built from src/animesalt/
- * Generated: 2026-09-22T20:41:44.444Z
- */
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  // Dean Edwards string substitution only: packed website code is never evaluated.
+  function unpack(code) {
+    var m=/}\((['"])([\s\S]*?)\1,\s*(\d+),\s*(\d+),\s*(['"])([\s\S]*?)\5\.split\((['"])\|\7\)/.exec(code);
+    if(!m)throw Error('Ravok player configuration unavailable');
+    var radix=Number(m[3]),count=Number(m[4]);if(radix<2||radix>62||count<1||count>5000)throw Error('Unsupported packed player');
+    var payload=m[2].replace(/\\'/g,"'").replace(/\\"/g,'"').replace(/\\\\/g,'\\'),words=m[6].split('|'),dict=Object.create(null);
+    function token(n){return (n<radix?'':token(Math.floor(n/radix)))+(n%radix>35?String.fromCharCode(n%radix+29):(n%radix).toString(36));}
+    while(count--)dict[token(count)]=words[count]||token(count);
+    return payload.replace(/\b\w+\b/g,function(w){return Object.prototype.hasOwnProperty.call(dict,w)?dict[w]:w;});
   }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-
-// src/animesalt/index.js
-var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-native"));
-
-// src/animesalt/constants.js
-var MAIN_URL = "https://animesalt.cx";
-var TMDB_API_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
-var TMDB_BASE_URL = "https://api.themoviedb.org/3";
-var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
-var HEADERS = {
-  "User-Agent": USER_AGENT,
-  "Accept": "*/*",
-  "Accept-Language": "en-US,en;q=0.5"
-};
-
-// src/animesalt/utils.js
-function fetchTmdbDetails(tmdbId, mediaType) {
-  return __async(this, null, function* () {
-    var _a;
-    const endpoint = mediaType === "movie" ? "movie" : "tv";
-    const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
-    try {
-      const res = yield fetch(url, { headers: HEADERS });
-      if (!res.ok)
-        return null;
-      const data = yield res.json();
-      return {
-        title: mediaType === "movie" ? data.title || data.original_title : data.name || data.original_name,
-        year: parseInt((data.release_date || data.first_air_date || "").substring(0, 4)) || null,
-        imdbId: ((_a = data.external_ids) == null ? void 0 : _a.imdb_id) || null
-      };
-    } catch (e) {
-      return null;
-    }
-  });
-}
-function cleanTitle(str) {
-  return (str || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
-}
-function titleSimilarity(a, b) {
-  const cleanA = cleanTitle(a);
-  const cleanB = cleanTitle(b);
-  if (!cleanA || !cleanB)
-    return 0;
-  if (cleanA === cleanB)
-    return 1;
-  if (cleanA.includes(cleanB) || cleanB.includes(cleanA))
-    return 0.8;
-  const wordsA = new Set(cleanA.split(" "));
-  const wordsB = new Set(cleanB.split(" "));
-  let intersection = 0;
-  for (const w of wordsA) {
-    if (wordsB.has(w))
-      intersection++;
+  function settings(html,id) {
+    var plain=html.includes('VPlayer("')?html:unpack(html);
+    var m=new RegExp('VPlayer\\("'+id+'",(\\{[\\s\\S]*?\\}),true(?:,source)?\\)').exec(plain);
+    if(!m)throw Error('Ravok video identity/configuration mismatch');
+    return JSON.parse(m[1]);
   }
-  return intersection * 2 / (wordsA.size + wordsB.size);
-}
-function unpack(code) {
-  try {
-    const match = code.match(/}\((['"])([\s\S]*?)\1,\s*(\d+),\s*(\d+),\s*(['"])([\s\S]*?)\5\.split\((['"])\|\7\)/);
-    if (match) {
-      let [_, quote1, p, a, c, quote2, kStr] = match;
-      p = p.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
-      const radix = parseInt(a);
-      let count = parseInt(c);
-      const k = kStr.split("|");
-      const e = (c2) => (c2 < radix ? "" : e(parseInt(c2 / radix))) + ((c2 = c2 % radix) > 35 ? String.fromCharCode(c2 + 29) : c2.toString(36));
-      const d = {};
-      while (count--)
-        d[e(count)] = k[count] || e(count);
-      return p.replace(/\b\w+\b/g, (w) => d[w]);
-    }
-  } catch (e) {
+  function language(t) {
+    var v=[t.language,t.lang,t.srclang,t.label,t.name];
+    for(var i=0;i<v.length;i++){
+      var s=String(v[i]||'').toLowerCase().trim();
+      if(/^(?:en|eng|english)(?:$|[\s_(-])/.test(s))return 'en';
+      if(/^(?:ms|msa|may|malay|bahasa melayu)(?:$|[\s_(-])/.test(s))return 'ms';
+      if(/^(?:id|ind|indo|indonesian|bahasa indonesia)(?:$|[\s_(-])/.test(s))return 'id';
+    }return '';
   }
-  return code;
-}
-function isRealStreamUrl(url) {
-  if (!url || typeof url !== "string")
-    return false;
-  if (!url.startsWith("http://") && !url.startsWith("https://"))
-    return false;
-  const lowercase = url.toLowerCase();
-  if (lowercase.includes("/embed/") || lowercase.includes("/embed-") || lowercase.includes("/e/") || lowercase.includes("/play.php") || lowercase.includes("/player.php") || lowercase.includes("abyssplayer.com") || lowercase.includes("short.icu") || lowercase.includes("cloudy.upns.one") || lowercase.includes("vidcloud.upns.ink") || lowercase.includes("filesforever.link") || lowercase.includes("strmup.to") || lowercase.includes("emturbovid.com") || lowercase.includes("animedekho.app") || lowercase.includes("animesalt.cx") || lowercase.includes("youtube.com") || lowercase.includes("youtu.be") || lowercase.includes("vimeo.com") || lowercase.includes(".html") || lowercase.includes(".htm") || lowercase.includes(".php") || lowercase.includes("#")) {
-    return false;
-  }
-  const isHls = lowercase.includes(".m3u8");
-  const isMp4 = lowercase.includes(".mp4") || lowercase.includes("/sora/") || lowercase.includes("/stream/");
-  return isHls || isMp4 || lowercase.includes(".mkv") || lowercase.includes(".mpd");
-}
-function isPlayableStream(stream) {
-  return __async(this, null, function* () {
-    if (!isRealStreamUrl(stream == null ? void 0 : stream.url))
-      return false;
-    try {
-      const headers = __spreadProps(__spreadValues({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-      }, stream.headers || {}), {
-        "Range": "bytes=0-10"
-      });
-      const res = yield fetch(stream.url, {
-        headers,
-        signal: AbortSignal.timeout(3e3)
-      });
-      if (!res.ok && res.status !== 206)
-        return false;
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("text/html"))
-        return false;
-      return true;
-    } catch (e) {
-      return false;
+  function hlsAttr(line,name){var m=new RegExp('(?:^|,)'+name+'=(?:"([^"]*)"|([^,]*))','i').exec(line.replace(/^#EXT-X-MEDIA:/,''));return m?(m[1]!=null?m[1]:m[2]):'';}
+  async function getStreams(id,type,season,episode) {
+    id=String(id||'');type=type==='series'?'tv':type;season=Number(season);episode=type==='movie'?1:Number(episode);
+    if(!/^\d+$/.test(id)||!['tv','movie'].includes(type)||(type==='tv'&&(!Number.isInteger(season)||season<0||!positive(episode))))return [];
+    var deadline=Date.now()+45000,calls=0;
+    async function text(url,headers,body) {
+      var left=Math.min(10000,deadline-Date.now());if(left<=0)throw Error('Request budget exhausted');
+      var timer,controller=typeof AbortController==='function'?new AbortController():null;calls++;
+      try{return await Promise.race([
+        fetch(url,{method:body?'POST':'GET',headers:Object.assign({'User-Agent':UA,Referer:SITE+'/'},headers||{}),body:body,signal:controller?controller.signal:undefined}).then(async function(r){if(!r.ok)throw Error('HTTP '+r.status+' at '+new URL(url).hostname);var b=await r.text();if(b.length>1500000)throw Error('Response too large');return b;}),
+        new Promise(function(_,reject){timer=setTimeout(function(){if(controller)controller.abort();reject(Error('HTTP timeout at '+new URL(url).hostname));},left);})
+      ]);}finally{clearTimeout(timer);}
     }
-  });
-}
-
-// src/animesalt/extractors.js
-var import_cheerio_without_node_native = __toESM(require("cheerio-without-node-native"));
-var import_crypto_js = __toESM(require("crypto-js"));
-function extractAwsStream(url) {
-  return __async(this, null, function* () {
-    try {
-      const hash = url.split("/").filter(Boolean).pop();
-      if (!hash)
-        return null;
-      const origin = new URL(url).origin;
-      const res = yield fetch(url, { headers: HEADERS });
-      if (!res.ok)
-        return null;
-      const html = yield res.text();
-      const postUrl = `${origin}/player/index.php?data=${hash}&do=getVideo`;
-      const postRes = yield fetch(postUrl, {
-        method: "POST",
-        headers: __spreadProps(__spreadValues({}, HEADERS), {
-          "x-requested-with": "XMLHttpRequest",
-          "Origin": origin,
-          "Referer": url,
-          "Content-Type": "application/x-www-form-urlencoded"
-        }),
-        body: `hash=${encodeURIComponent(hash)}&r=${encodeURIComponent(origin)}`
-      });
-      if (!postRes.ok)
-        return null;
-      const json = yield postRes.json();
-      const m3u8 = json == null ? void 0 : json.videoSource;
-      if (!m3u8)
-        return null;
-      let subtitle = null;
-      const packedMatch = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]*?\.split\(['"]\|['"]\)\)/);
-      if (packedMatch) {
-        const unpacked = unpack(packedMatch[0]);
-        const subMatch = unpacked.match(/"kind":\s*"captions"\s*,\s*"file":\s*"(https?:\/\/[^"]+)"/);
-        if (subMatch) {
-          subtitle = subMatch[1].replace(/\\/g, "");
-        }
+    async function document(url){var c=cache[url];if(c&&Date.now()-c.time<300000)return c.text;var b=await text(url);cache[url]={text:b,time:Date.now()};cacheKeys.push(url);while(cacheKeys.length>16)delete cache[cacheKeys.shift()];return b;}
+    async function metadata(){
+      var url='https://api.themoviedb.org/3/'+type+'/'+id+'?append_to_response=alternative_titles,external_ids',context=typeof globalThis!=='undefined'&&globalThis.VUEO_DISCOVERY_CONTEXT;
+      if(!context&&typeof globalThis.vueoDiscoveryContext==='function'){context=await globalThis.vueoDiscoveryContext(url);if(typeof context==='string')context=JSON.parse(context);}
+      var tmdb=context&&(context.tmdb||context),expected=context&&(context.tmdbId||tmdb&&tmdb.id);
+      if(expected!=null&&String(expected)!==id)throw Error('Shared metadata TMDB ID mismatch');
+      if(tmdb&&(tmdb.title||tmdb.name)) {
+        var title=tmdb.title||tmdb.name,year=String(tmdb.first_air_date||tmdb.release_date||context.year||'').slice(0,4),titles=[title,tmdb.original_name,tmdb.original_title].concat(context.aliases||[]),alt=tmdb.alternative_titles||{};
+        (alt.results||alt.titles||[]).forEach(function(v){titles.push(v.title);});
+        return {title:title,year:year,titles:titles};
       }
-      return {
-        url: m3u8,
-        headers: {
-          "Referer": `${origin}/`,
-          "Origin": origin,
-          "User-Agent": HEADERS["User-Agent"]
-        },
-        subtitles: subtitle ? [{ lang: "English", url: subtitle }] : []
-      };
-    } catch (e) {
-      return null;
+      // Retain the upstream provider's public metadata fallback; VUEO normally supplies this data.
+      var d=JSON.parse(await text(url+'&api_key=1865f43a0549ca50d341dd9ab8b29f49'));
+      if(String(d.id)!==id)throw Error('TMDB metadata identity mismatch');
+      var aliases=[d.title||d.name,d.original_title||d.original_name],alt=d.alternative_titles||{};
+      (alt.results||alt.titles||[]).forEach(function(v){aliases.push(v.title);});
+      return {title:d.title||d.name,year:String(d.first_air_date||d.release_date||'').slice(0,4),titles:aliases};
     }
-  });
-}
-function extractAbyss(url, langName = "Default") {
-  return __async(this, null, function* () {
-    var _a;
-    try {
-      const cleanUrl = url.replace("https://short.icu", "https://abyssplayer.com");
-      const reqHeaders = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-        "Origin": "https://playhydrax.com",
-        "Referer": "https://playhydrax.com/"
-      };
-      const res = yield fetch(cleanUrl, { headers: reqHeaders });
-      if (!res.ok)
-        return [];
-      const html = yield res.text();
-      const match = html.match(/const\s+datas\s*=\s*"([^"]*)"/);
-      if (!match || !match[1])
-        return [];
-      const decRes = yield fetch("https://enc-dec.app/api/dec-abyss", {
-        method: "POST",
-        headers: __spreadProps(__spreadValues({}, reqHeaders), {
-          "Content-Type": "application/json"
-        }),
-        body: JSON.stringify({ text: match[1] })
-      });
-      if (!decRes.ok)
-        return [];
-      const decData = yield decRes.json();
-      const sources = ((_a = decData == null ? void 0 : decData.result) == null ? void 0 : _a.sources) || [];
-      return sources.filter((s) => s && s.url && s.status).map((s) => {
-        const codec = (s.codec || "MP4").toUpperCase();
-        const quality = s.type || "720p";
-        return {
-          name: `AnimeSalt [${langName}] (${codec} ${quality})`,
-          url: s.url,
-          quality,
-          headers: {
-            "Referer": "https://playhydrax.com/",
-            "Origin": "https://playhydrax.com",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-          },
-          type: s.url.includes(".m3u8") ? "m3u8" : "mp4"
-        };
-      });
-    } catch (e) {
-      return [];
-    }
-  });
-}
-function extractMultiLang(dataParam) {
-  return __async(this, null, function* () {
-    try {
-      let decodedStr = "";
-      if (typeof atob === "function") {
-        decodedStr = atob(dataParam);
-      } else {
-        decodedStr = Buffer.from(dataParam, "base64").toString("utf-8");
-      }
-      const list = JSON.parse(decodedStr);
-      if (!Array.isArray(list))
-        return [];
-      const streamPromises = list.map((item) => {
-        const lang = item.language || "Default";
-        const link = item.link;
-        if (!link)
-          return Promise.resolve([]);
-        return extractAbyss(link, lang);
-      });
-      const nested = yield Promise.all(streamPromises);
-      return nested.flat();
-    } catch (e) {
-      return [];
-    }
-  });
-}
-function extractMegaPlay(url) {
-  return __async(this, null, function* () {
-    var _a;
-    try {
-      let streamPageUrl = url;
-      if (!url.includes("/stream/s-")) {
-        const pageRes = yield fetch(url, { headers: HEADERS });
-        if (!pageRes.ok)
-          return [];
-        const html = yield pageRes.text();
-        const $ = import_cheerio_without_node_native.default.load(html);
-        const embedSrc = $("iframe.s5-embed").attr("src");
-        if (!embedSrc)
-          return [];
-        streamPageUrl = embedSrc;
-      }
-      const idMatch = streamPageUrl.match(/\/stream\/s-\d+\/(\d+)\//);
-      if (!idMatch || !idMatch[1])
-        return [];
-      const id = idMatch[1];
-      const origin = new URL(streamPageUrl).origin;
-      const apiHeaders = {
-        "Accept": "*/*",
-        "X-Requested-With": "XMLHttpRequest",
-        "Referer": origin,
-        "User-Agent": HEADERS["User-Agent"]
-      };
-      const apiRes = yield fetch(`${origin}/stream/getSources?id=${id}`, { headers: apiHeaders });
-      if (!apiRes.ok)
-        return [];
-      const resJson = yield apiRes.json();
-      let file = (_a = resJson == null ? void 0 : resJson.sources) == null ? void 0 : _a.file;
-      const enc = resJson == null ? void 0 : resJson.enc;
-      if (!file && enc) {
-        const keyStr = "i?LMTAx0Q6,:}50U";
-        const keyHex = import_crypto_js.default.enc.Utf8.parse(keyStr).toString(import_crypto_js.default.enc.Hex).padEnd(64, "0");
-        const key = import_crypto_js.default.enc.Hex.parse(keyHex);
-        const iv = import_crypto_js.default.enc.Utf8.parse("W0;27ToaUpl_P%'c");
-        const normalized = enc.replace(/-/g, "+").replace(/_/g, "/");
-        const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
-        const decrypted = import_crypto_js.default.AES.decrypt(padded, key, {
-          iv,
-          mode: import_crypto_js.default.mode.CBC,
-          padding: import_crypto_js.default.pad.Pkcs7
+    async function findTitle(meta){
+      if(!meta.title||!/^\d{4}$/.test(meta.year))throw Error('Verified title/year metadata required');
+      var names=meta.titles.filter(function(v){return typeof v==='string'&&normal(v);}),keys=names.map(normal),attempts=[meta.title];
+      names.forEach(function(t){if(!attempts.some(function(q){return normal(q)===normal(t);}))attempts.push(t);});
+      var seen=Object.create(null);
+      for(var q=0;q<Math.min(2,attempts.length);q++) {
+        var html=await document(SITE+'/?s='+encodeURIComponent(attempts[q])),candidates=[];
+        (html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[]).forEach(function(article){
+          var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);if(!h||!keys.includes(normal(h[1])))return;
+          links(article).forEach(function(a){var u=new URL(a.url);if(u.origin!==SITE||!(type==='tv'?/^\/series\//:/^\/movies\//).test(u.pathname)||seen[a.url])return;seen[a.url]=true;candidates.push(a.url);});
         });
-        const decObj = JSON.parse(decrypted.toString(import_crypto_js.default.enc.Utf8));
-        file = decObj == null ? void 0 : decObj.file;
-      }
-      if (!file)
-        return [];
-      const tokenMatch = file.match(/\/([a-f0-9]{32})\/([a-f0-9]{32})\//i);
-      if (tokenMatch && !file.includes("token=")) {
-        const secret = "MpCdnT0k3n!9f2K#xQ7vL5mR8wN1pY4s";
-        const expires = Math.floor(Date.now() / 1e3) + 90;
-        const payload = `${expires}|${tokenMatch[1]}/${tokenMatch[2]}`;
-        const hash = import_crypto_js.default.HmacSHA256(payload, secret);
-        const b64Payload = import_crypto_js.default.enc.Base64.stringify(import_crypto_js.default.enc.Utf8.parse(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-        const b64Sig = import_crypto_js.default.enc.Base64.stringify(hash).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-        const token = `${b64Payload}.${b64Sig}`;
-        file = `${file}${file.includes("?") ? "&" : "?"}token=${token}`;
-      }
-      const subtitles = ((resJson == null ? void 0 : resJson.tracks) || []).filter((t) => t.file && t.kind !== "thumbnails").map((t) => ({ lang: t.label || "English", url: t.file }));
-      return [{
-        name: "AnimeSalt [MegaPlay] (Auto M3U8)",
-        url: file,
-        quality: "1080p",
-        headers: {
-          "Referer": `${origin}/`,
-          "Origin": origin,
-          "User-Agent": HEADERS["User-Agent"]
-        },
-        subtitles,
-        type: "m3u8"
-      }];
-    } catch (e) {
-      return [];
+        if(candidates.length>3)throw Error('Ambiguous title search; skipped');
+        var matches=(await Promise.all(candidates.map(async function(url){var page=await document(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);if(!h||!keys.includes(normal(heading(page))))return null;var end=page.indexOf('<!-- Overview',h.index),region=page.slice(h.index,end>h.index?end:h.index+16000),years=textContent(region).match(/\b(?:19|20)\d{2}\b/g)||[];var unique=years.filter(function(y,i){return years.indexOf(y)===i;});if(unique.length!==1||unique[0]!==meta.year)return null;return {url:url,html:page,title:heading(page)};}))).filter(Boolean);
+        if(matches.length>1)throw Error('Multiple exact title/year matches; skipped');
+        if(matches.length===1)return matches[0];
+      }throw Error('No exact title/year match');
     }
-  });
-}
-function extractStreamWish(url) {
-  return __async(this, null, function* () {
-    try {
-      const embedUrl = url.includes("/e/") ? url : url.replace("/f/", "/e/");
-      const res = yield fetch(embedUrl, { headers: HEADERS });
-      if (!res.ok)
-        return null;
-      const html = yield res.text();
-      const packedMatch = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]*?\.split\(['"]\|['"]\)\)/);
-      if (packedMatch) {
-        const unpacked = unpack(packedMatch[0]);
-        const fileMatch = unpacked.match(/file\s*:\s*["'](https?:\/\/[^"'\s]+\.m3u8(?:\?[^"'\s]*)?)["']/);
-        if (fileMatch) {
-          const origin = new URL(embedUrl).origin;
-          return {
-            name: "AnimeSalt [StreamWish] (Auto M3U8)",
-            url: fileMatch[1],
-            quality: "720p",
-            headers: {
-              "Referer": `${origin}/`,
-              "Origin": origin,
-              "User-Agent": HEADERS["User-Agent"]
-            },
-            type: "m3u8"
-          };
-        }
-      }
-    } catch (e) {
+    async function episodePage(found){
+      if(type==='movie')return found;
+      var seasonTags=(found.html.match(/<a\b[^>]*>/gi)||[]).filter(function(t){return /(?:^|\s)season-btn(?:\s|$)/.test(attr(t,'class'))&&attr(t,'data-season')!==''&&Number(attr(t,'data-season'))===season;});
+      if(seasonTags.length!==1)throw Error('Exact requested season unavailable');
+      var url=episodes(found.html,season,episode);
+      if(!url){var post=attr(seasonTags[0],'data-post');if(!/^\d+$/.test(post))throw Error('Missing season identity');var html=await text(SITE+'/wp-admin/admin-ajax.php',{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest',Referer:found.url},'action=action_select_season&season='+season+'&post='+post);url=episodes(html,season,episode);}
+      if(!url)throw Error('Exact episode unavailable');
+      var page=await text(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);
+      if(!h||normal(heading(page))!==normal(found.title))throw Error('Episode title mismatch');
+      var m=/Season\s+(\d+)\s+Episode\s+(\d+)\b/i.exec(textContent(page.slice(h.index,h.index+2500)));
+      if(!m||Number(m[1])!==season||Number(m[2])!==episode)throw Error('Episode number mismatch');
+      return {url:url,html:page,title:found.title};
     }
-    return null;
-  });
-}
-
-// src/animesalt/index.js
-function searchAnimeSalt(query) {
-  return __async(this, null, function* () {
-    var _a;
-    try {
-      const body = `action=torofilm_infinite_scroll&page=1&per_page=12&query_type=search&query_args[s]=${encodeURIComponent(query)}`;
-      const res = yield fetch(`${MAIN_URL}/wp-admin/admin-ajax.php`, {
-        method: "POST",
-        headers: __spreadProps(__spreadValues({}, HEADERS), {
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          "X-Requested-With": "XMLHttpRequest",
-          "Referer": `${MAIN_URL}/`
-        }),
-        body
-      });
-      if (!res.ok)
-        return [];
-      const json = yield res.json();
-      if (!(json == null ? void 0 : json.success) || !((_a = json == null ? void 0 : json.data) == null ? void 0 : _a.content))
-        return [];
-      const $ = import_cheerio_without_node_native2.default.load(json.data.content);
-      const results = [];
-      $("article").each((_, el) => {
-        const title = $(el).find("header h2").text().trim();
-        const href = $(el).find("a").first().attr("href");
-        if (title && href) {
-          results.push({ title, href });
-        }
-      });
-      return results;
-    } catch (e) {
-      return [];
+    async function extract(page){
+      var frames=page.html.match(/<iframe\b[^>]*>/gi)||[],players=[];
+      frames.forEach(function(tag){var url=address(attr(tag,'data-src')||attr(tag,'src'),page.url);if(!url)return;var u=new URL(url),m=/^\/video\/([0-9a-f]{32})\/?$/i.exec(u.pathname);if(m&&!players.some(function(p){return p.url===url;}))players.push({url:url,id:m[1],origin:u.origin});});
+      if(!players.length)throw Error('No native Ravok HLS player on episode page');
+      return (await Promise.all(players.slice(0,2).map(async function(p){try{
+        var headers={'User-Agent':UA,Referer:p.url,Origin:p.origin};
+        var results=await Promise.all([text(p.url,{Referer:page.url}),text(p.origin+'/player/index.php?data='+p.id+'&do=getVideo',Object.assign({},headers,{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'}),'hash='+p.id+'&r='+encodeURIComponent(page.url))]);
+        var config=settings(results[0],p.id),data=JSON.parse(results[1]),url=address(data.videoSource,p.url);
+        if(data.hls!==true||!url)throw Error('No native HLS source');
+        var master=await text(url,headers);
+        if(!/^#EXTM3U(?:\r?\n|$)/.test(master.trim())||!/#EXT-X-STREAM-INF:/.test(master))throw Error('Invalid master HLS');
+        var japanese=master.split(/\r?\n/).filter(function(l){return /^#EXT-X-MEDIA:/.test(l)&&hlsAttr(l,'TYPE')==='AUDIO'&&/^(?:ja|jp|jpn|japanese)$/i.test(hlsAttr(l,'LANGUAGE'));});
+        if(japanese.length!==1||!address(hlsAttr(japanese[0],'URI'),url))throw Error('No unique Japanese audio rendition');
+        var tracks=Array.isArray(config.tracks)?config.tracks:[],seen=Object.create(null),subtitles=[];
+        tracks.forEach(function(t){var lang=language(t),u=address(t.file||t.url,p.url);if(!/^(?:captions|subtitles)$/.test(t.kind||'')||!lang||!u||seen[u])return;seen[u]=true;subtitles.push({url:u,language:lang,name:lang==='en'?'English':lang==='ms'?'Malay':'Indo',mimeType:/\.vtt(?:\?|$)/i.test(u)?'text/vtt':/\.(?:ass|ssa)(?:\?|$)/i.test(u)?'text/x-ssa':'application/x-subrip',headers:headers});});
+        log('EXTRACT','Ravok master HLS verified; Japanese rendition selected; '+subtitles.length+' subtitle tracks');
+        return {name:'AnimeSalt',provider:'animesalt',serverName:'Ravok',title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+' • Japanese Sub',url:url+'#vueo_hls_v1=plain&audio=ja,jp,jpn,japanese',type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:'sub',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)};
+      }catch(e){log('SOURCE','Ravok: '+e.message);return null;}}))).filter(Boolean);
     }
-  });
-}
-function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
-  return __async(this, null, function* () {
-    try {
-      const details = yield fetchTmdbDetails(tmdbId, mediaType);
-      if (!details || !details.title)
-        return [];
-      let results = yield searchAnimeSalt(details.title);
-      if (results.length === 0) {
-        const cleaned = cleanTitle(details.title);
-        if (cleaned && cleaned !== details.title.toLowerCase()) {
-          results = yield searchAnimeSalt(cleaned);
-        }
-      }
-      if (results.length === 0)
-        return [];
-      let bestMatch = null;
-      let highestSim = 0;
-      for (const item of results) {
-        const sim = titleSimilarity(details.title, item.title);
-        if (sim > highestSim) {
-          highestSim = sim;
-          bestMatch = item;
-        }
-      }
-      if (!bestMatch || highestSim < 0.2) {
-        bestMatch = results[0];
-      }
-      let targetUrl = bestMatch.href;
-      if (mediaType === "tv") {
-        const seriesRes = yield fetch(bestMatch.href, { headers: HEADERS });
-        if (!seriesRes.ok)
-          return [];
-        const seriesHtml = yield seriesRes.text();
-        const $series = import_cheerio_without_node_native2.default.load(seriesHtml);
-        let seasonBtn = $series(`div.season-buttons a[data-season="${seasonNum}"]`);
-        if (seasonBtn.length === 0) {
-          seasonBtn = $series("div.season-buttons a").first();
-        }
-        const postId = seasonBtn.attr("data-post");
-        const dataSeason = seasonBtn.attr("data-season") || seasonNum;
-        if (postId) {
-          const epRes = yield fetch(`${MAIN_URL}/wp-admin/admin-ajax.php`, {
-            method: "POST",
-            headers: __spreadProps(__spreadValues({}, HEADERS), {
-              "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-              "X-Requested-With": "XMLHttpRequest",
-              "Referer": bestMatch.href
-            }),
-            body: `action=action_select_season&season=${dataSeason}&post=${postId}`
-          });
-          if (epRes.ok) {
-            const epHtml = yield epRes.text();
-            const $ep = import_cheerio_without_node_native2.default.load(epHtml);
-            const epArticles = $ep("li article");
-            let targetEp = null;
-            epArticles.each((idx, el) => {
-              const epText = $ep(el).find("h2.entry-title").text();
-              if (epText.includes(`x${episodeNum}`) || epText.includes(`Episode ${episodeNum}`)) {
-                targetEp = $ep(el).find("a").first().attr("href");
-              }
-            });
-            if (!targetEp && epArticles.length >= episodeNum) {
-              targetEp = $ep(epArticles[episodeNum - 1]).find("a").first().attr("href");
-            }
-            if (targetEp) {
-              targetUrl = targetEp;
-            }
-          }
-        }
-      }
-      const pageRes = yield fetch(targetUrl, { headers: HEADERS });
-      if (!pageRes.ok)
-        return [];
-      const pageHtml = yield pageRes.text();
-      const $page = import_cheerio_without_node_native2.default.load(pageHtml);
-      const iframeUrls = /* @__PURE__ */ new Set();
-      $page("iframe").each((_, el) => {
-        const src = $page(el).attr("data-src") || $page(el).attr("src");
-        if (src && !src.startsWith("about:") && !src.startsWith("javascript:")) {
-          const fullUrl = src.startsWith("//") ? `https:${src}` : src.startsWith("http") ? src : `${MAIN_URL}${src}`;
-          iframeUrls.add(fullUrl);
-        }
-      });
-      const streams = [];
-      const promises = [];
-      for (const iframeUrl of iframeUrls) {
-        if (iframeUrl.includes("multi-lang-plyr/player.php")) {
-          const urlObj = new URL(iframeUrl);
-          const dataParam = urlObj.searchParams.get("data");
-          if (dataParam) {
-            promises.push(
-              extractMultiLang(dataParam).then((res) => {
-                if (Array.isArray(res))
-                  streams.push(...res);
-              })
-            );
-          }
-        } else if (iframeUrl.includes("as-cdn") || iframeUrl.includes("awstream") || iframeUrl.includes("zephyrflick")) {
-          promises.push(
-            extractAwsStream(iframeUrl).then((res) => {
-              if (res && res.url) {
-                streams.push({
-                  name: "AnimeSalt [AWSStream] (Auto M3U8)",
-                  url: res.url,
-                  quality: "1080p",
-                  headers: res.headers,
-                  subtitles: res.subtitles,
-                  type: "m3u8"
-                });
-              }
-            })
-          );
-        } else if (iframeUrl.includes("abyssplayer.com") || iframeUrl.includes("short.icu")) {
-          promises.push(
-            extractAbyss(iframeUrl, "Default").then((res) => {
-              if (Array.isArray(res))
-                streams.push(...res);
-            })
-          );
-        } else if (iframeUrl.includes("megaplay.buzz") || iframeUrl.includes("rapid-cloud.co")) {
-          promises.push(
-            extractMegaPlay(iframeUrl).then((res) => {
-              if (Array.isArray(res))
-                streams.push(...res);
-            })
-          );
-        } else if (iframeUrl.includes("pixdrive") || iframeUrl.includes("ghbrisk") || iframeUrl.includes("streamwish") || iframeUrl.includes("filesim")) {
-          promises.push(
-            extractStreamWish(iframeUrl).then((res) => {
-              if (res)
-                streams.push(res);
-            })
-          );
-        }
-      }
-      yield Promise.allSettled(promises);
-      const seenUrls = /* @__PURE__ */ new Set();
-      const candidateStreams = [];
-      for (const s of streams) {
-        if (s && s.url && !seenUrls.has(s.url) && isRealStreamUrl(s.url)) {
-          seenUrls.add(s.url);
-          candidateStreams.push({
-            name: s.name || "AnimeSalt",
-            title: mediaType === "movie" ? details.title : `${details.title} - S${seasonNum}E${episodeNum}`,
-            url: s.url,
-            quality: s.quality || "Auto",
-            headers: s.headers,
-            subtitles: s.subtitles || [],
-            provider: "animesalt",
-            type: s.type || "m3u8"
-          });
-        }
-      }
-      const probeResults = yield Promise.all(
-        candidateStreams.map((s) => __async(this, null, function* () {
-          return { stream: s, playable: yield isPlayableStream(s) };
-        }))
-      );
-      let finalStreams = probeResults.filter((r) => r.playable).map((r) => r.stream);
-      if (finalStreams.length === 0)
-        finalStreams = candidateStreams;
-      const qualityOrder = { "1080p": 4, "720p": 3, "480p": 2, "360p": 1, "Auto": 0 };
-      return finalStreams.sort((a, b) => {
-        var _a, _b;
-        return ((_a = qualityOrder[b.quality]) != null ? _a : 0) - ((_b = qualityOrder[a.quality]) != null ? _b : 0);
-      });
-    } catch (e) {
-      return [];
-    }
-  });
-}
-module.exports = { getStreams };
-
-/* CLOUDBANK_UPSTREAM_SOURCE_END */
-  })(originalModule, originalModule.exports, portableRequire, cloudbankMetadataFetch(fetch), typeof globalThis !== "undefined" ? globalThis : global);
-  if (typeof originalModule.exports.getStreams !== "function") throw new Error("Upstream getStreams missing");
-  module.exports = cloudbankWrapProvider(originalModule.exports, "animesalt", ["movie", "tv"]);
-  if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
-  if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
-  if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
+    var streams=[];
+    try{var meta=await metadata(),found=await findTitle(meta);log('MATCH',found.title+' ('+meta.year+'); exact title/year');var page=await episodePage(found);if(type==='tv')log('EPISODE','Exact S'+season+'E'+episode);streams=await extract(page);}catch(e){console.error('[AnimeSalt] '+e.message);}
+    log('RESULT',streams.length+' sources, '+calls+' HTTP calls');return streams;
+  }
+  module.exports={getStreams:getStreams};
 })();
-
-/* CLOUDBANK_PLAYIMDB_DISPLAY_START */
-/* CLOUDBANK_PLAYIMDB_DISPLAY_V1
- * Embedded in each provider: the app downloads standalone JavaScript files.
- * Presentation only. No network requests and no changes to playback fields.
- */
-function cloudbankDisplayInstall(provider, providerName, providerId) {
-  if (providerId === "playimdb") return provider; // Reference output stays exactly upstream.
-  var details = Object.create(null);
-  var keys = [];
-  function remember(key, value) {
-    if (!details[key]) keys.push(key);
-    details[key] = value;
-    while (keys.length > 16) delete details[keys.shift()];
-  }
-  if (typeof vueoSharedTmdb === "function") {
-    var shared = vueoSharedTmdb;
-    vueoSharedTmdb = function(url, fallback) {
-      var match = /\/3\/(movie|tv)\/(\d+)(?:\?|$)/.exec(String(url));
-      return Promise.resolve(shared(url, fallback)).then(function(value) {
-        if (match && value && typeof value === "object") remember(match[1] + "/" + match[2], value);
-        return value;
-      });
-    };
-  }
-  function clean(value) {
-    if (typeof value !== "string" && typeof value !== "number") return "";
-    return String(value).replace(/[\u0000-\u001f\u007f]/g, " ")
-      .replace(/[\uD83C-\uD83E][\uDC00-\uDFFF]|[\u2600-\u27BF\uFE0F\u200D]/g, "").replace(/\s+/g, " ").trim();
-  }
-  function usable(value) {
-    var text = clean(value);
-    return /^(?:unknown(?: title)?|n\/?a|none|null|undefined|auto|stream|original[- ]audio)$/i.test(text) ? "" : text;
-  }
-  function unique(list) {
-    return list.filter(function(value, index) { return value && list.indexOf(value) === index; });
-  }
-  var languages = { en: "English", eng: "English", english: "English", ms: "Malay", msa: "Malay", may: "Malay", malay: "Malay", id: "Indonesian", ind: "Indonesian", indo: "Indonesian", indonesian: "Indonesian", hi: "Hindi", hin: "Hindi", hindi: "Hindi", ta: "Tamil", tam: "Tamil", tamil: "Tamil", te: "Telugu", tel: "Telugu", telugu: "Telugu", ja: "Japanese", jpn: "Japanese", japanese: "Japanese", ko: "Korean", kor: "Korean", korean: "Korean", zh: "Chinese", zho: "Chinese", chi: "Chinese", chinese: "Chinese", es: "Spanish", spa: "Spanish", spanish: "Spanish", fr: "French", fra: "French", fre: "French", french: "French", de: "German", deu: "German", ger: "German", german: "German", ar: "Arabic", ara: "Arabic", arabic: "Arabic", pt: "Portuguese", por: "Portuguese", portuguese: "Portuguese", ru: "Russian", rus: "Russian", russian: "Russian", it: "Italian", ita: "Italian", italian: "Italian", th: "Thai", tha: "Thai", thai: "Thai", vi: "Vietnamese", vie: "Vietnamese", vietnamese: "Vietnamese", ml: "Malayalam", mal: "Malayalam", malayalam: "Malayalam", bn: "Bengali", ben: "Bengali", bengali: "Bengali", tr: "Turkish", tur: "Turkish", turkish: "Turkish" };
-  function language(value) {
-    var text = clean(value).toLowerCase().replace(/[-_](?:us|gb|my|id|cn|tw|br|pt)$/, "");
-    return languages[text] || "";
-  }
-  function metadata(id, type) {
-    if (details[type + "/" + id]) return details[type + "/" + id];
-    var raw = typeof globalThis !== "undefined" ? globalThis.VUEO_DISCOVERY_CONTEXT : null;
-    if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch (_) { raw = null; } }
-    if (!raw || typeof raw !== "object") return {};
-    var tmdb = raw.tmdb || raw;
-    var contextId = raw.tmdbId || tmdb.id;
-    if (String(contextId) !== String(id) || (raw.mediaType && raw.mediaType !== type)) return {};
-    return tmdb;
-  }
-  function format(stream, index, meta, type, season, episode) {
-    if (!stream || typeof stream !== "object" || !stream.url) return stream;
-    var output = Object.assign({}, stream);
-    var originalTitle = typeof stream.title === "string" ? stream.title : "";
-    var displayTitle = usable(meta.title || meta.name);
-    var year = /\b(?:19|20)\d{2}\b/.exec(clean(meta.release_date || meta.first_air_date || meta.year));
-    var lines = [];
-    if (displayTitle) {
-      if (year) displayTitle += " (" + year[0] + ")";
-      if (type === "tv" && Number.isInteger(Number(season)) && Number(season) >= 0 && Number(episode) >= 1) {
-        displayTitle += " · S" + (Number(season) < 10 ? "0" : "") + Number(season) + "E" + (Number(episode) < 10 ? "0" : "") + Number(episode);
-      }
-      lines.push(displayTitle);
-    } else {
-      // Keep a source-provided content title when it is recognisable as one.
-      var first = clean(originalTitle.split(/\r?\n/)[0]);
-      var providerLabel = clean(providerName.replace(/\s+V\d+$/i, ""));
-      var isProviderTitle = providerLabel && first.toLowerCase().indexOf(providerLabel.toLowerCase()) === 0;
-      var isTechnicalTitle = /^(?:\d{3,4}p|4k|Server\s+\d+|Unknown|Subtitles:|WEB[- ]DL|BluRay|HLS|M3U8|MP4|DASH)\b/i.test(first);
-      if (first && /[A-Za-z\u0080-\uFFFF]/.test(first) && !isProviderTitle && !isTechnicalTitle) lines.push(first);
-    }
-    var text = [stream.name, originalTitle, stream.fileName, stream.filename, stream.videoCodec, stream.codec, stream.audioCodec, stream.audioChannels, stream.releaseSource, stream.sourceQuality, stream.hdr].map(clean).join(" ");
-    // Film titles containing words such as English or BluRay are not technical metadata.
-    var contentTitle = clean(meta.title || meta.name) || (lines.length ? lines[0] : "");
-    if (contentTitle) text = text.split(contentTitle).join("");
-    var quality = usable(stream.quality);
-    var resolution = /\b(2160|1440|1080|720|576|480|360|240|144)p?\b/i.exec(quality);
-    if (!resolution) resolution = /\b(2160|1440|1080|720|576|480|360|240|144)p\b/i.exec(text);
-    var qualityLabel = resolution ? (resolution[1] === "2160" ? "4K" : resolution[1] + "p") : (/\b4k\b/i.test(quality + " " + text) ? "4K" : "");
-    var audioLang = language(stream.audioLanguage || stream.language || stream.lang);
-    var audioLanguages = Array.isArray(stream.audioLanguages) ? unique(stream.audioLanguages.map(language)) : [];
-    if (!audioLang && audioLanguages.length === 1) audioLang = audioLanguages[0];
-    var explicitAudio = /\b(English|Malay|Indonesian|Hindi|Tamil|Telugu|Japanese|Korean|Chinese|Spanish|French|Arabic)[ -]Audio\b/i.exec(text);
-    if (!audioLang && explicitAudio) audioLang = language(explicitAudio[1]);
-    var labelledAudio = /🌍\s*([^|\n]+)/.exec(originalTitle);
-    if (!audioLang && labelledAudio) audioLang = language(labelledAudio[1]);
-    var filenameAudio = /(?:^|[._ -])(English|Malay|Indonesian|Hindi|Tamil|Telugu|Japanese|Korean|Chinese)(?=[._ -]|$)/i.exec(clean(stream.fileName || stream.filename));
-    if (!audioLang && filenameAudio) audioLang = language(filenameAudio[1]);
-    // MovieBlast exposes its language as a trailing parenthesised code.
-    var parenthesised = /\(([A-Za-z]{2,3})\)\s*$/.exec(clean(originalTitle));
-    if (!audioLang && parenthesised) audioLang = language(parenthesised[1]);
-    var audioLabel = audioLang ? audioLang + " Audio" : "";
-    if (audioLanguages.length > 1) audioLabel = "Multi Audio (" + audioLanguages.join(", ") + ")";
-    if (/^original$/i.test(clean(stream.audioLanguage)) || /\boriginal[- ]audio\b/i.test(text)) audioLabel = "Original Audio";
-    if (/\bdual[- ]audio\b/i.test(text)) audioLabel = "Dual Audio" + (audioLang ? " (" + audioLang + ")" : "");
-    else if (/\b(?:multi[- ]audio|multilingual)\b/i.test(text)) audioLabel = "Multi Audio" + (audioLang ? " (" + audioLang + ")" : "");
-    var server = usable(stream.serverName || stream.server || stream.sourceName);
-    var labelledServer = /📌\s*([^|\n]+)/.exec(originalTitle);
-    if (!server && labelledServer) server = usable(labelledServer[1]);
-    if (!server) {
-      server = clean(stream.name);
-      [providerName, providerName.replace(/\s+V\d+$/i, ""), providerId, providerId.replace(/-v\d+$/, "")].forEach(function(label) {
-        label = clean(label);
-        if (!label) return;
-        if (server.toLowerCase().indexOf(label.toLowerCase()) === 0) server = server.slice(label.length).trim();
-      });
-      if (!server) {
-        var titleServer = clean(originalTitle);
-        var baseLabel = clean(providerName.replace(/\s+V\d+$/i, ""));
-        if (baseLabel && titleServer.toLowerCase().indexOf(baseLabel.toLowerCase() + " - ") === 0) {
-          server = titleServer.slice(baseLabel.length + 3).replace(/\([A-Za-z]{2,3}\)\s*$/, "").trim();
-        }
-      }
-      server = server.replace(/\b\d{3,4}p\b|\b(?:4k|FHD|UHD|Auto)\b/gi, "")
-        .replace(/\((?:English|Hindi|Tamil|Telugu|Malay|Indonesian|EN|HI|TA|TE|MS|ID)\)/gi, "").trim();
-      // Keep descriptive host names; omit names consisting of quality/audio labels.
-      if (/\b(?:\d{3,4}p|4k|audio|FHD|UHD|HLS|M3U8|MP4|BluRay|WEB-DL)\b/i.test(server)) {
-        var numbered = /\bServer\s+\d+\b/i.exec(server);
-        server = numbered ? numbered[0] : "";
-      }
-      server = usable(server.replace(/^[|·: -]+|[|·: -]+$/g, ""));
-      if (server.length > 80) server = "";
-    }
-    if (!server) server = "Server " + (index + 1);
-    var path = String(stream.url).split(/[?#]/)[0];
-    var formatLabel = /\.m3u8$/i.test(path) ? "HLS" : /\.mp4$/i.test(path) ? "MP4" : /\.mkv$/i.test(path) ? "MKV" : /\.mpd$/i.test(path) ? "DASH" : "";
-    if (!formatLabel) {
-      var declared = clean(stream.format || stream.mimeType || stream.type);
-      if (/^(?:hls|m3u8|application\/(?:vnd\.apple\.mpegurl|x-mpegurl))$/i.test(declared)) formatLabel = "HLS";
-      else if (/^(?:mp4|video\/mp4)$/i.test(declared)) formatLabel = "MP4";
-      else if (/^(?:dash|application\/dash\+xml)$/i.test(declared)) formatLabel = "DASH";
-    }
-    var minutes = Number(stream.runtimeMinutes || (type === "movie" ? meta.runtime : 0));
-    var duration = minutes > 0 && Number.isFinite(minutes) ? Math.round(minutes) + " min" : "";
-    if (!duration) { var dm = /\b(\d+)\s*min(?:utes)?\b/i.exec(clean(stream.duration) + " " + text); if (dm && Number(dm[1]) > 0) duration = dm[1] + " min"; }
-    var firstLine = lines.length ? "🎬 " + lines[0] : "";
-    // Match PlayIMDb's original typography and order, without its guessed defaults.
-    if (displayTitle) {
-      firstLine = type === "tv" ? "🎬 " + usable(meta.title || meta.name) + " - S" + Number(season) + "E" + Number(episode) + (year ? " (" + year[0] + ")" : "") :
-        "🎬 " + usable(meta.title || meta.name) + (year ? " - " + year[0] : "");
-    }
-    var qualityDisplay = qualityLabel === "4K" ? "2160P" : qualityLabel.toUpperCase();
-    var audioDisplay = audioLabel.replace(/[- ]Audio/g, "").trim();
-    var infoLine = [qualityDisplay ? "💎 " + qualityDisplay : "", audioDisplay ? "🌍 " + audioDisplay : ""].filter(Boolean).join(" | ");
-    var bottomLine = [formatLabel ? "🎞️ " + (formatLabel === "HLS" ? "M3U8" : formatLabel) : "", duration ? "⏱️ " + duration : "", "📌 " + server].filter(Boolean).join(" | ");
-    var nameQuality = qualityLabel === "4K" ? "4K UHD" : qualityLabel === "1080p" ? "1080p FHD" : qualityLabel === "720p" ? "720p HD" : qualityLabel;
-    output.name = ["🟡 " + providerName, nameQuality, audioLabel ? audioLabel.replace(/ Audio/g, "-Audio") : ""].filter(Boolean).join(" | ");
-    output.title = [firstLine, infoLine, bottomLine].filter(Boolean).join("\n");
-    return output;
-  }
-  var original = provider.getStreams;
-  var adapted = Object.assign({}, provider);
-  adapted.getStreams = function(id, type, season, episode) {
-    var args = arguments;
-    var mediaType = type === "series" ? "tv" : type;
-    return Promise.resolve().then(function() { return original.apply(provider, args); }).then(function(streams) {
-      if (!Array.isArray(streams)) return streams;
-      var meta = metadata(id, mediaType);
-      streams = cloudAnimeFilterStreams(streams, "animesalt");
-      return streams.map(function(stream, index) {
-        try { return format(stream, index, meta, mediaType, season, episode); } catch (_) { return stream; }
-      });
-    });
-  };
-  return adapted;
-}
-module.exports = cloudbankDisplayInstall(module.exports, "AnimeSalt", "animesalt");
-if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
-if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
-if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
-/* CLOUDBANK_PLAYIMDB_DISPLAY_END */
+if(typeof globalThis!=='undefined')globalThis.getStreams=module.exports.getStreams;
