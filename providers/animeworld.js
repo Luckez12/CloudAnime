@@ -1,4 +1,4 @@
-/* CloudAnime AnimeWorld v2.0.1 — exact catalogue episode; original audio verified; one discovery path. */
+/* CloudAnime AnimeWorld v2.0.2 — exact catalogue episode; original audio verified; one discovery path. */
 (function () {
   "use strict";
   var SITE = "https://watchanimeworld.one";
@@ -25,6 +25,27 @@
   function attr(tag,name) {var m=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(["\'])([\\s\\S]*?)\\1','i').exec(tag);return m?decode(m[2]):'';}
   function address(s,base) {try{var u=new URL(decode(s),base);return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
   function heading(html) {var m=/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html);return m?textContent(m[1]):'';}
+  function elements(html,name,select){
+    // Balanced same-tag extraction, so a nested span does not truncate its parent field.
+    var re=new RegExp('<\\/?'+name+'\\b[^>]*>','gi'),m,out=[];
+    while((m=re.exec(html))){
+      if(/^<\//.test(m[0])||!select(m[0]))continue;
+      var start=m.index,depth=1,end;
+      while(depth&&(end=re.exec(html))){if(/^<\//.test(end[0]))depth--;else if(!/\/>$/.test(end[0]))depth++;}
+      if(depth)return [];out.push(html.slice(start,re.lastIndex));
+    }
+    return out;
+  }
+  function catalogueIdentity(html){
+    var primary=elements(html,'article',function(t){return /(?:^|\s)single(?:\s|$)/.test(attr(t,'class'));});
+    if(primary.length!==1)return null;
+    var heads=primary[0].match(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi)||[];
+    if(heads.length!==1)return null;
+    var fields=elements(primary[0],'span',function(t){return /(?:^|\s)year(?:\s|$)/.test(attr(t,'class'));});
+    if(fields.length!==1)return null;
+    var year=textContent(fields[0]);
+    return /^(?:19|20)\d{2}$/.test(year)?{title:heading(primary[0]),year:year}:null;
+  }
   function links(html) {var tags=html.match(/<a\b[^>]*>/gi)||[];return tags.map(function(tag){return {url:address(attr(tag,'href'),SITE),tag:tag};}).filter(function(v){return !!v.url;});}
   function episodes(html,season,episode) {
     var matches=[],articles=html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[];
@@ -109,7 +130,15 @@
         });
         log('SEARCH',"query='"+plan.query+"'; requestedYear="+meta.year+'; exactCandidates='+candidates.length+'; siteTitles='+siteTitles.slice(0,5).join(' | '));
         if(candidates.length>3)noMatch('Ambiguous title search; skipped');
-        var matches=(await Promise.all(candidates.map(async function(url){var page=await document(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);if(!h||!keys.includes(normal(heading(page))))return null;var end=page.indexOf('<!-- Overview',h.index),region=page.slice(h.index,end>h.index?end:h.index+16000),years=textContent(region).match(/\b(?:19|20)\d{2}\b/g)||[];var unique=years.filter(function(y,i){return years.indexOf(y)===i;});if(unique.length!==1||!(meta.years||[meta.year]).includes(unique[0])){log('REJECT',heading(page)+'; requestedYear='+meta.year+'; siteYears='+unique.join(','));return null;}return {url:url,html:page,title:heading(page)};}))).filter(Boolean);
+        var matches=(await Promise.all(candidates.map(async function(url){
+          var page=await document(url),identity=catalogueIdentity(page);
+          if(!identity||!keys.includes(normal(identity.title))||identity.year!==meta.year){
+            log('REJECT',(identity?identity.title:heading(page))+'; requestedYear='+meta.year+'; primaryCatalogueYear='+(identity?identity.year:'unavailable'));
+            return null;
+          }
+          log('IDENTITY',identity.title+' ('+identity.year+'); primary catalogue title/year fields');
+          return {url:url,html:page,title:identity.title};
+        }))).filter(Boolean);
         if(matches.length>1)noMatch('Multiple exact title/year matches; skipped');
         if(matches.length===1)return matches[0];
       }noMatch('No exact title/year match for '+meta.title+' ('+meta.year+'); no substitute series selected');
