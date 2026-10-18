@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.14",
+  "version": "1.8.15",
   "scrapers": [
     {
       "id": "allanime",
@@ -211,7 +211,7 @@
       "id": "animesalt",
       "name": "AnimeSalt",
       "description": "Anime · Japanese Sub · exact title/year and episode · Ravok HLS",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",

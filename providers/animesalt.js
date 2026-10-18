@@ -1,10 +1,11 @@
-/* CloudAnime AnimeSalt v2.0.0 — exact title/year and episode, Ravok Japanese HLS. */
+/* CloudAnime AnimeSalt v2.0.1 — exact title/year and episode, Ravok Japanese HLS. */
 (function () {
   "use strict";
   var SITE = "https://animesalt.cx";
   var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
   var cache = Object.create(null), cacheKeys = [];
   function log(stage, message) { console.log("[AnimeSalt] " + stage + ": " + message); }
+  function noMatch(message) {var e=new Error(message);e.name='AnimeSaltNoMatch';throw e;}
   function positive(v) { var n=Number(v);return Number.isInteger(n)&&n>0?n:null; }
   function decode(s) {
     var named={amp:'&',quot:'"',apos:"'",lt:'<',gt:'>',nbsp:' ',ndash:'–',mdash:'—',lsquo:'‘',rsquo:'’',ldquo:'“',rdquo:'”',hellip:'…'};
@@ -12,6 +13,15 @@
   }
   function textContent(s) {return decode(String(s||'').replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)>/gi,' ').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
   function normal(s) {s=textContent(s).toLowerCase();if(typeof s.normalize==='function')s=s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');return s.replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g,'');}
+  // TMDB alternatives may name later arcs/series; an extended primary title
+  // is not evidence that the site's season one is this request's season one.
+  function titleNames(title,original,aliases) {
+    var primary=[title,original].filter(function(v){return typeof v==='string'&&normal(v);}),keys=primary.map(normal);
+    return primary.concat((aliases||[]).filter(function(v){
+      if(typeof v!=='string'||!normal(v))return false;
+      var k=normal(v);return keys.includes(k)||!keys.some(function(p){return k.length>p.length&&k.indexOf(p)===0;});
+    }));
+  }
   function attr(tag,name) {var m=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(["\'])([\\s\\S]*?)\\1','i').exec(tag);return m?decode(m[2]):'';}
   function address(s,base) {try{var u=new URL(decode(s),base);return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
   function heading(html) {var m=/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html);return m?textContent(m[1]):'';}
@@ -73,14 +83,14 @@
       if(tmdb&&(tmdb.title||tmdb.name)) {
         var title=tmdb.title||tmdb.name,year=String(tmdb.first_air_date||tmdb.release_date||context.year||'').slice(0,4),titles=[title,tmdb.original_name,tmdb.original_title].concat(context.aliases||[]),alt=tmdb.alternative_titles||{};
         (alt.results||alt.titles||[]).forEach(function(v){titles.push(v.title);});
-        return {title:title,year:year,titles:titles};
+        return {title:title,year:year,titles:titleNames(title,tmdb.original_name||tmdb.original_title,titles)};
       }
       // Retain the upstream provider's public metadata fallback; VUEO normally supplies this data.
       var d=JSON.parse(await text(url+'&api_key=1865f43a0549ca50d341dd9ab8b29f49'));
       if(String(d.id)!==id)throw Error('TMDB metadata identity mismatch');
       var aliases=[d.title||d.name,d.original_title||d.original_name],alt=d.alternative_titles||{};
       (alt.results||alt.titles||[]).forEach(function(v){aliases.push(v.title);});
-      return {title:d.title||d.name,year:String(d.first_air_date||d.release_date||'').slice(0,4),titles:aliases};
+      return {title:d.title||d.name,year:String(d.first_air_date||d.release_date||'').slice(0,4),titles:titleNames(d.title||d.name,d.original_title||d.original_name,aliases)};
     }
     async function findTitle(meta){
       if(!meta.title||!/^\d{4}$/.test(meta.year))throw Error('Verified title/year metadata required');
@@ -88,24 +98,25 @@
       names.forEach(function(t){if(!attempts.some(function(q){return normal(q)===normal(t);}))attempts.push(t);});
       var seen=Object.create(null);
       for(var q=0;q<Math.min(2,attempts.length);q++) {
-        var html=await document(SITE+'/?s='+encodeURIComponent(attempts[q])),candidates=[];
+        var html=await document(SITE+'/?s='+encodeURIComponent(attempts[q])),candidates=[],siteTitles=[];
         (html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[]).forEach(function(article){
-          var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);if(!h||!keys.includes(normal(h[1])))return;
+          var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);if(!h)return;siteTitles.push(textContent(h[1]));if(!keys.includes(normal(h[1])))return;
           links(article).forEach(function(a){var u=new URL(a.url);if(u.origin!==SITE||!(type==='tv'?/^\/series\//:/^\/movies\//).test(u.pathname)||seen[a.url])return;seen[a.url]=true;candidates.push(a.url);});
         });
-        if(candidates.length>3)throw Error('Ambiguous title search; skipped');
-        var matches=(await Promise.all(candidates.map(async function(url){var page=await document(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);if(!h||!keys.includes(normal(heading(page))))return null;var end=page.indexOf('<!-- Overview',h.index),region=page.slice(h.index,end>h.index?end:h.index+16000),years=textContent(region).match(/\b(?:19|20)\d{2}\b/g)||[];var unique=years.filter(function(y,i){return years.indexOf(y)===i;});if(unique.length!==1||unique[0]!==meta.year)return null;return {url:url,html:page,title:heading(page)};}))).filter(Boolean);
-        if(matches.length>1)throw Error('Multiple exact title/year matches; skipped');
+        log('SEARCH',"query='"+attempts[q]+"'; requestedYear="+meta.year+'; exactCandidates='+candidates.length+'; siteTitles='+siteTitles.slice(0,5).join(' | '));
+        if(candidates.length>3)noMatch('Ambiguous title search; skipped');
+        var matches=(await Promise.all(candidates.map(async function(url){var page=await document(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);if(!h||!keys.includes(normal(heading(page))))return null;var end=page.indexOf('<!-- Overview',h.index),region=page.slice(h.index,end>h.index?end:h.index+16000),years=textContent(region).match(/\b(?:19|20)\d{2}\b/g)||[];var unique=years.filter(function(y,i){return years.indexOf(y)===i;});if(unique.length!==1||unique[0]!==meta.year){log('REJECT',heading(page)+'; requestedYear='+meta.year+'; siteYears='+unique.join(','));return null;}return {url:url,html:page,title:heading(page)};}))).filter(Boolean);
+        if(matches.length>1)noMatch('Multiple exact title/year matches; skipped');
         if(matches.length===1)return matches[0];
-      }throw Error('No exact title/year match');
+      }noMatch('No exact title/year match for '+meta.title+' ('+meta.year+'); no substitute series selected');
     }
     async function episodePage(found){
       if(type==='movie')return found;
       var seasonTags=(found.html.match(/<a\b[^>]*>/gi)||[]).filter(function(t){return /(?:^|\s)season-btn(?:\s|$)/.test(attr(t,'class'))&&attr(t,'data-season')!==''&&Number(attr(t,'data-season'))===season;});
-      if(seasonTags.length!==1)throw Error('Exact requested season unavailable');
+      if(seasonTags.length!==1)noMatch('Exact requested season unavailable: S'+season);
       var url=episodes(found.html,season,episode);
       if(!url){var post=attr(seasonTags[0],'data-post');if(!/^\d+$/.test(post))throw Error('Missing season identity');var html=await text(SITE+'/wp-admin/admin-ajax.php',{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest',Referer:found.url},'action=action_select_season&season='+season+'&post='+post);url=episodes(html,season,episode);}
-      if(!url)throw Error('Exact episode unavailable');
+      if(!url)noMatch('Exact episode unavailable: S'+season+'E'+episode);
       var page=await text(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);
       if(!h||normal(heading(page))!==normal(found.title))throw Error('Episode title mismatch');
       var m=/Season\s+(\d+)\s+Episode\s+(\d+)\b/i.exec(textContent(page.slice(h.index,h.index+2500)));
@@ -132,7 +143,7 @@
       }catch(e){log('SOURCE','Ravok: '+e.message);return null;}}))).filter(Boolean);
     }
     var streams=[];
-    try{var meta=await metadata(),found=await findTitle(meta);log('MATCH',found.title+' ('+meta.year+'); exact title/year');var page=await episodePage(found);if(type==='tv')log('EPISODE','Exact S'+season+'E'+episode);streams=await extract(page);}catch(e){console.error('[AnimeSalt] '+e.message);}
+    try{var meta=await metadata(),found=await findTitle(meta);log('MATCH',found.title+' ('+meta.year+'); exact title/year');var page=await episodePage(found);if(type==='tv')log('EPISODE','Exact S'+season+'E'+episode);streams=await extract(page);}catch(e){if(e.name==='AnimeSaltNoMatch')log('NO_MATCH',e.message);else console.error('[AnimeSalt] '+e.message);}
     log('RESULT',streams.length+' sources, '+calls+' HTTP calls');return streams;
   }
   module.exports={getStreams:getStreams};
