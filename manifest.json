@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.19",
+  "version": "1.8.20",
   "scrapers": [
     {
       "id": "allanime",
@@ -141,8 +141,8 @@
     {
       "id": "animesalt",
       "name": "AnimeSalt",
-      "description": "Anime · Japanese Sub · Ravok + MegaPlay · verified episode mapping",
-      "version": "2.2.0",
+      "description": "Anime · Japanese Sub · generic site episode ranges · ARM/AniZip identity bridge · Ravok + MegaPlay",
+      "version": "2.3.0",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
