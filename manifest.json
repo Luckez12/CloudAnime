@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.18",
+  "version": "1.8.19",
   "scrapers": [
     {
       "id": "allanime",
@@ -104,75 +104,6 @@
       ]
     },
     {
-      "id": "anikototv",
-      "name": "AnikotoTV",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.11",
-      "author": "piratezoro9",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "providers/anikototv.js",
-      "enabled": true,
-      "hasSettings": true,
-      "formats": [
-        "mp4"
-      ],
-      "logo": "https://i.postimg.cc/JhL3HBR4/anikototv.png",
-      "contentLanguage": [
-        "en",
-        "ja"
-      ],
-      "runtimeTimeoutMs": 20000,
-      "upstreamSupportedTypes": [
-        "movie",
-        "tv",
-        "anime"
-      ],
-      "upstreamVersion": "1.0.5",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
-      "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
-      "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": []
-    },
-    {
-      "id": "anidb",
-      "name": "AniDB",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.5",
-      "author": "Nuvio Team (ChillPill)",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "providers/anidb.js",
-      "enabled": true,
-      "hasSettings": true,
-      "formats": [
-        "mp4",
-        "m3u8"
-      ],
-      "logo": "https://i.postimg.cc/rmMzZ45K/anidb.png",
-      "contentLanguage": [
-        "en",
-        "ja",
-        "ko"
-      ],
-      "runtimeTimeoutMs": 20000,
-      "upstreamSupportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
-      "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
-      "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": [
-        "cheerio-without-node-native"
-      ]
-    },
-    {
       "id": "animepahe",
       "name": "AnimePahe",
       "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
@@ -183,7 +114,7 @@
         "tv"
       ],
       "filename": "providers/animepahe.js",
-      "enabled": true,
+      "enabled": false,
       "hasSettings": true,
       "formats": [
         "m3u8",
@@ -200,7 +131,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.1",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
+      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. Disabled pending rebuild: IMDb response shape is incompatible with the current VUEO metadata context; the legacy mapping endpoint returned 404 during audit.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
@@ -255,7 +186,7 @@
         "tv"
       ],
       "filename": "providers/animetsu.js",
-      "enabled": true,
+      "enabled": false,
       "hasSettings": true,
       "formats": [
         "m3u8"
@@ -272,7 +203,7 @@
         "anime"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
+      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. Disabled pending rebuild: genre gate rejects the current VUEO metadata shape; the configured search API returned HTTP 502 during audit.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": []
@@ -288,7 +219,7 @@
         "tv"
       ],
       "filename": "providers/animeworld.js",
-      "enabled": true,
+      "enabled": false,
       "hasSettings": true,
       "formats": [
         "m3u8"
@@ -305,41 +236,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
-      "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
-      "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": []
-    },
-    {
-      "id": "animezey",
-      "name": "AnimeZeY",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.5",
-      "author": "Nuvio Team",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "providers/animezey.js",
-      "enabled": true,
-      "hasSettings": true,
-      "formats": [
-        "mp4",
-        "mkv",
-        "m3u8"
-      ],
-      "logo": "https://i.postimg.cc/RVTy2djk/ainimezey.png",
-      "contentLanguage": [
-        "en",
-        "pt"
-      ],
-      "runtimeTimeoutMs": 20000,
-      "upstreamSupportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
+      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. Disabled pending rebuild: upstream labels every result Multi-Audio, excluded by the Japanese/Sub-only policy.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": []
