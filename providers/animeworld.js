@@ -1,4 +1,4 @@
-/* CloudAnime AnimeWorld v2.0.2 — exact catalogue episode; original audio verified; one discovery path. */
+/* CloudAnime AnimeWorld v2.0.3 — exact catalogue episode; original audio verified; one discovery path. */
 (function () {
   "use strict";
   var SITE = "https://watchanimeworld.one";
@@ -62,6 +62,27 @@
       });
     });
     return matches.length===1?matches[0]:'';
+  }
+  function verifyEpisode(page,url,found,season,episode){
+    // The URL was selected from the verified series' published cards/AJAX response.
+    var tags=page.match(/<(?:meta|link)\b[^>]*>/gi)||[];
+    var canonical=tags.filter(function(t){return attr(t,'rel')==='canonical';});
+    if(canonical.length!==1||address(attr(canonical[0],'href'),SITE)!==url)noMatch('Episode canonical identity mismatch');
+    var graphUrls=tags.filter(function(t){return attr(t,'property')==='og:url';});
+    if(graphUrls.some(function(t){return address(attr(t,'content'),SITE)!==url;}))noMatch('Episode Open Graph URL conflicts with canonical');
+    var players=elements(page,'aside',function(t){return attr(t,'id')==='aa-options'&&/(?:^|\s)video-player(?:\s|$)/.test(attr(t,'class'));});
+    if(players.length!==1)noMatch('Episode primary player identity unavailable');
+    var owners=[];
+    links(players[0]).forEach(function(a){var u=new URL(a.url);if(u.origin===SITE&&/^\/series\/[^/]+\/$/.test(u.pathname)&&!owners.includes(a.url))owners.push(a.url);});
+    if(owners.length!==1||owners[0]!==found.url)noMatch('Episode parent series conflicts with selected catalogue');
+    // Numbered SEO titles are additional evidence; a plain episode name is valid too.
+    var og=tags.filter(function(t){return attr(t,'property')==='og:title';});
+    og.forEach(function(t){var m=/^(.*?)\s+(\d+)x(\d+)(?:\s+-\s+|$)/.exec(attr(t,'content'));
+      if(m&&(normal(m[1])!==normal(found.title)||Number(m[2])!==season||Number(m[3])!==episode))noMatch('Explicit episode title coordinates conflict with request');
+    });
+    var u=new URL(url),m=/-(\d+)x(\d+)\/$/.exec(u.pathname);
+    if(!m||Number(m[1])!==season||Number(m[2])!==episode)noMatch('Selected episode URL coordinates conflict with request');
+    log('EPISODE_IDENTITY','Published exact card + canonical + parent series; SEO title may be an episode name');
   }
   // Dean Edwards string substitution only: packed website code is never evaluated.
   function unpack(code) {
@@ -151,11 +172,7 @@
       var url=episodes(found.html,targetSeason,targetEpisode);
       if(!url){var post=attr(seasonTags[0],'data-post');if(!/^\d+$/.test(post))throw Error('Missing season identity');var html=await text(SITE+'/wp-admin/admin-ajax.php?action=action_select_season&season='+targetSeason+'&post='+post,{'X-Requested-With':'XMLHttpRequest',Referer:found.url});url=episodes(html,targetSeason,targetEpisode);}
       if(!url)noMatch('Exact site episode unavailable: S'+targetSeason+'E'+targetEpisode);
-      var page=await text(url),tags=page.match(/<(?:meta|link)\b[^>]*>/gi)||[];
-      var og=tags.find(function(t){return attr(t,'property')==='og:title';}),canonical=tags.find(function(t){return attr(t,'rel')==='canonical';});
-      var m=og&&/^(.*?)\s+(\d+)x(\d+)(?:\s+-\s+|$)/.exec(attr(og,'content'));
-      if(!m||normal(m[1])!==normal(found.title)||Number(m[2])!==targetSeason||Number(m[3])!==targetEpisode)noMatch('Episode page title/coordinates disagree with request');
-      if(!canonical||address(attr(canonical,'href'),SITE)!==url)noMatch('Episode canonical identity mismatch');
+      var page=await text(url);verifyEpisode(page,url,found,targetSeason,targetEpisode);
       return {url:url,html:page,title:found.title};
     }
     async function extractPlayer(page,players){
