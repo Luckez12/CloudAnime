@@ -1,4 +1,4 @@
-/* CloudAnime AnimeWorld v2.0.0 — exact catalogue episode; original audio verified; one discovery path. */
+/* CloudAnime AnimeWorld v2.0.1 — exact catalogue episode; original audio verified; one discovery path. */
 (function () {
   "use strict";
   var SITE = "https://watchanimeworld.one";
@@ -140,13 +140,13 @@
         if(!/^#EXTM3U(?:\r?\n|$)/.test(master.trim())||!/#EXT-X-STREAM-INF:/.test(master))throw Error('Invalid master HLS');
         var japanese=master.split(/\r?\n/).filter(function(l){return /^#EXT-X-MEDIA:/.test(l)&&hlsAttr(l,'TYPE')==='AUDIO'&&/^(?:ja|jp|jpn|japanese)$/i.test(hlsAttr(l,'LANGUAGE'));});
         if(!japanese.length||japanese.some(function(l){return !address(hlsAttr(l,'URI'),url);}))throw Error('No verified Japanese audio rendition');
-        var audio=master.split(/\r?\n/).filter(function(l){return /^#EXT-X-MEDIA:/.test(l)&&hlsAttr(l,'TYPE')==='AUDIO';}),multi=audio.length>1;
+        var audio=master.split(/\r?\n/).filter(function(l){return /^#EXT-X-MEDIA:/.test(l)&&hlsAttr(l,'TYPE')==='AUDIO';});
         var jaGroups=japanese.map(function(l){return hlsAttr(l,'GROUP-ID');}),variants=master.split(/\r?\n/).filter(function(l){return /^#EXT-X-STREAM-INF:/.test(l);});
         if(variants.some(function(l){return !jaGroups.includes(hlsAttr(l,'AUDIO'));}))throw Error('Variant has no selectable Japanese audio group');
         var tracks=Array.isArray(config.tracks)?config.tracks:[],seen=Object.create(null),subtitles=[];
         tracks.forEach(function(t){var lang=language(t),u=address(t.file||t.url,p.url);if(!/^(?:captions|subtitles)$/.test(t.kind||'')||!lang||!u||seen[u])return;seen[u]=true;subtitles.push({url:u,language:lang,name:lang==='en'?'English':lang==='ms'?'Malay':'Indo',mimeType:/\.vtt(?:\?|$)/i.test(u)?'text/vtt':/\.(?:ass|ssa)(?:\?|$)/i.test(u)?'text/x-ssa':'application/x-subrip',headers:headers});});
-        log('EXTRACT','Master HLS verified; Japanese audio available; '+audio.length+' audio renditions retained; '+subtitles.length+' published subtitle tracks');
-        return {name:'AnimeWorld',provider:'animeworld',serverName:new URL(p.url).hostname,title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+(multi?' • MultiAudio (Japanese available)':' • Japanese'),url:url,type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:multi?'multi':'original',audio:multi?'MultiAudio (Japanese available)':'Japanese',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)};
+        log('EXTRACT','Master HLS verified; Japanese-only playback policy; '+audio.length+' native audio renditions verified; '+subtitles.length+' published subtitle tracks');
+        return {name:'AnimeWorld',provider:'animeworld',serverName:new URL(p.url).hostname,title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+' • Japanese Original',url:url+'#vueo_hls_v1=plain&audio=ja,jp,jpn,japanese',type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:'original',audio:'Japanese',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)};
       }catch(e){log('SOURCE','Player: '+e.message);return null;}}))).filter(Boolean);
     }
     async function extract(page){

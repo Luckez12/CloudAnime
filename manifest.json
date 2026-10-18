@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.22",
+  "version": "1.8.23",
   "scrapers": [
     {
       "id": "allanime",
@@ -211,8 +211,8 @@
     {
       "id": "animeworld",
       "name": "AnimeWorld",
-      "description": "Anime · Original Japanese audio verified · MultiAudio retained · exact title/year and episode",
-      "version": "2.0.0",
+      "description": "Anime · Japanese original audio only · exact title/year and episode",
+      "version": "2.0.1",
       "author": "piratezoro9",
       "supportedTypes": [
         "movie",
@@ -236,7 +236,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Current .one catalogue and website-published FirePlayer host. Exact title/year and episode/canonical checks. Shared root metadata only; no TMDB season call, duplicate engine, guessed subtitles or fixed episode offsets. API-supplied signed native HLS is validated; all variants must reference Japanese audio. MultiAudio is accepted and all native tracks retained. Published English/Malay/Indonesian subtitle sidecars forwarded. Requires on-device playback check.",
+      "notes": "Current .one catalogue and website-published FirePlayer host. Exact title/year and episode/canonical checks. Shared root metadata only; no TMDB season call, duplicate engine, guessed subtitles or fixed episode offsets. API-supplied signed native HLS is validated; all variants must reference Japanese audio. MultiAudio sources are accepted, then existing generic VUEO HLS instructions keep Japanese audio only and preserve all video qualities. No additional HTTP requests or app changes. Published English/Malay/Indonesian subtitle sidecars forwarded. Signed links can still fail if upstream rejects or expires them. On-device original-only playback needs verification.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [],
