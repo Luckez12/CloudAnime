@@ -1,13 +1,15 @@
-/* CloudAnime AnimeSalt v2.1.0 — exact title/year and episode, Ravok Japanese HLS. */
+/* CloudAnime AnimeSalt v2.1.1 — exact title/year and episode, Ravok Japanese HLS. */
 (function () {
   "use strict";
   var SITE = "https://animesalt.cx";
   var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
   var cache = Object.create(null), cacheKeys = [];
   function log(stage, message) { console.log("[AnimeSalt] " + stage + ": " + message); }
-  // Confirmed against TMDB 30984 season 2 and the site's four part lists on 2026-10-18.
+  // Confirmed against TMDB season counts and the site's part lists on 2026-10-18.
   // Do not derive split offsets from fuzzy titles or assume a fixed 12/13-episode cour.
   var VERIFIED_SEASON_MAPPINGS = {
+    '73223:1': {rootTitle:'Black Clover',rootYear:'2017',title:'Black Clover',seasonYear:'2017',
+      parts:[{season:1,start:1,end:51,siteStart:1},{season:2,start:52,end:102,siteStart:52},{season:3,start:103,end:154,siteStart:103},{season:4,start:155,end:170,siteStart:155}]},
     '30984:2': {rootTitle:'Bleach',rootYear:'2004',title:'Bleach: Thousand-Year Blood War',seasonYear:'2022',
       parts:[{season:1,start:1,end:13},{season:2,start:14,end:26},{season:3,start:27,end:40},{season:4,start:41,end:50}]}
   };
@@ -35,10 +37,16 @@
   function episodes(html,season,episode) {
     var matches=[],articles=html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[];
     articles.forEach(function(article){
-      var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);if(!h)return;
-      var m=/(?:^|\s)(\d+)x(\d+)\s*$/i.exec(textContent(h[1]));
-      if(!m||Number(m[1])!==season||Number(m[2])!==episode)return;
-      links(article).forEach(function(v){if(new URL(v.url).origin===SITE&&/^\/episode\/[^/]+\/?$/.test(new URL(v.url).pathname)&&!matches.includes(v.url))matches.push(v.url);});
+      var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);
+      var caption=h&&/(?:^|\s)(\d+)x(\d+)\s*$/i.exec(textContent(h[1]));
+      // Episode names may contain no coordinates. Resolve exact numbers from
+      // the site's own link, then confirm them again on the episode page.
+      links(article).forEach(function(v){
+        var u=new URL(v.url),m=/^\/episode\/[^/]+-(\d+)x(\d+)\/?$/.exec(u.pathname);
+        if(u.origin!==SITE||!m||Number(m[1])!==season||Number(m[2])!==episode)return;
+        if(caption&&(Number(caption[1])!==season||Number(caption[2])!==episode))return;
+        if(!matches.includes(v.url))matches.push(v.url);
+      });
     });
     return matches.length===1?matches[0]:'';
   }
@@ -125,8 +133,9 @@
         if(!/(?:^|\s)season-btn(?:\s|$)/.test(attr(tag,'class')))return null;
         var number=positive(attr(tag,'data-season')),post=attr(tag,'data-post');
         var label=textContent(a),count=/\bSeason\s+\d+\s*[•·]\s*(\d+)\s*-\s*(\d+)\s*\((\d+)\)/i.exec(label);
-        var size=count&&Number(count[1])===1&&Number(count[2])===Number(count[3])?positive(count[3]):null;
-        return number&&/^\d+$/.test(post)?{season:number,post:post,count:size,tag:tag}:null;
+        var first=count?positive(count[1]):null,last=count?positive(count[2]):null;
+        var size=first&&last&&last-first+1===Number(count[3])?positive(count[3]):null;
+        return number&&/^\d+$/.test(post)?{season:number,post:post,count:size,first:first,last:last,tag:tag}:null;
       }).filter(Boolean).sort(function(a,b){return a.season-b.season;});
     }
     function scopedSeason(meta) {
@@ -144,13 +153,13 @@
       if(rows.length!==parts.length)noMatch('Site part structure changed; split mapping needs verification');
       for(var i=0;i<rows.length;i++) {
         var size=parts[i].end-parts[i].start+1;
-        if(rows[i].season!==parts[i].season||!rows[i].count)noMatch('Site part numbering/counts not verified');
+        if(rows[i].season!==parts[i].season||!rows[i].count||rows[i].first!==(parts[i].siteStart||1))noMatch('Site part numbering/counts not verified');
         if(rows[i].post!==rows[0].post)noMatch('Site parts do not share one series identity');
         if(i<parts.length-1&&rows[i].count!==size)noMatch('Closed site part count disagrees with verified mapping');
         if(rows[i].count>size)noMatch('Site part exceeds verified episode range');
       }
-      var local=episode-parts[target].start+1;
-      if(local<1||local>rows[target].count)noMatch('Mapped episode not available on site: S'+rows[target].season+'E'+local);
+      var local=episode-parts[target].start+(parts[target].siteStart||1);
+      if(local<rows[target].first||local>rows[target].last)noMatch('Mapped episode not available on site: S'+rows[target].season+'E'+local);
       log('MAPPING','TMDB S'+season+'E'+episode+' -> AnimeSalt S'+rows[target].season+'E'+local+'; series='+found.title+'; verified offsets and preceding part counts');
       return {season:rows[target].season,episode:local};
     }
@@ -160,7 +169,7 @@
       var seasonTags=(found.html.match(/<a\b[^>]*>/gi)||[]).filter(function(t){return /(?:^|\s)season-btn(?:\s|$)/.test(attr(t,'class'))&&attr(t,'data-season')!==''&&Number(attr(t,'data-season'))===targetSeason;});
       if(seasonTags.length!==1)noMatch('Exact requested site season unavailable: S'+targetSeason);
       var url=episodes(found.html,targetSeason,targetEpisode);
-      if(!url){var post=attr(seasonTags[0],'data-post');if(!/^\d+$/.test(post))throw Error('Missing season identity');var html=await text(SITE+'/wp-admin/admin-ajax.php',{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest',Referer:found.url},'action=action_select_season&season='+targetSeason+'&post='+post);url=episodes(html,targetSeason,targetEpisode);}
+      if(!url){var post=attr(seasonTags[0],'data-post');if(!/^\d+$/.test(post))throw Error('Missing season identity');var html=await text(SITE+'/wp-admin/admin-ajax.php?action=action_select_season&season='+targetSeason+'&post='+post,{'X-Requested-With':'XMLHttpRequest',Referer:found.url});url=episodes(html,targetSeason,targetEpisode);}
       if(!url)noMatch('Exact site episode unavailable: S'+targetSeason+'E'+targetEpisode);
       var page=await text(url),h=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(page);
       if(!h||normal(heading(page))!==normal(found.title))throw Error('Episode title mismatch');
@@ -171,7 +180,7 @@
     async function extract(page){
       var frames=page.html.match(/<iframe\b[^>]*>/gi)||[],players=[];
       frames.forEach(function(tag){var url=address(attr(tag,'data-src')||attr(tag,'src'),page.url);if(!url)return;var u=new URL(url),m=/^\/video\/([0-9a-f]{32})\/?$/i.exec(u.pathname);if(m&&!players.some(function(p){return p.url===url;}))players.push({url:url,id:m[1],origin:u.origin});});
-      if(!players.length)throw Error('No native Ravok HLS player on episode page');
+      if(!players.length){var hosts=[];frames.forEach(function(t){var u=address(attr(t,'data-src')||attr(t,'src'),page.url);if(u){var host=new URL(u).hostname;if(!hosts.includes(host))hosts.push(host);}});noMatch('No supported Ravok player on this episode; site player hosts='+hosts.join(',')+'; other servers are not extracted');}
       return (await Promise.all(players.slice(0,2).map(async function(p){try{
         var headers={'User-Agent':UA,Referer:p.url,Origin:p.origin};
         var results=await Promise.all([text(p.url,{Referer:page.url}),text(p.origin+'/player/index.php?data='+p.id+'&do=getVideo',Object.assign({},headers,{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'}),'hash='+p.id+'&r='+encodeURIComponent(page.url))]);
@@ -196,6 +205,7 @@
         log('MAPPING','Main title unavailable; checking verified requested-season mapping');
         var scoped=scopedSeason(meta);found=await findTitle(scoped);route=mappedRoute(found,scoped);
       }
+      if(!scoped&&VERIFIED_SEASON_MAPPINGS[id+':'+season]){var direct=scopedSeason(meta);if(normal(found.title)!==normal(direct.title))noMatch('Verified mapped series title mismatch');route=mappedRoute(found,direct);if(route.season!==season||route.episode!==episode)deadline+=15000;}
       log('MATCH',found.title+' ('+meta.year+'); '+(route.season===season&&route.episode===episode?'exact title/year':'season-scoped mapping'));
       var page=await episodePage(found,route);
       if(type==='tv')log('EPISODE','Requested TMDB S'+season+'E'+episode+'; verified site S'+route.season+'E'+route.episode);

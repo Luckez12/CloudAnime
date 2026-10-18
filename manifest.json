@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.16",
+  "version": "1.8.17",
   "scrapers": [
     {
       "id": "allanime",
@@ -210,8 +210,8 @@
     {
       "id": "animesalt",
       "name": "AnimeSalt",
-      "description": "Anime · Japanese Sub · Ravok HLS · verified Bleach TYBW season mapping",
-      "version": "2.1.0",
+      "description": "Anime · Japanese Sub · Ravok HLS · named episode cards and verified season mapping",
+      "version": "2.1.1",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -235,7 +235,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Ravok Japanese HLS. Verified Bleach TMDB season 2 -> AnimeSalt TYBW parts 1-4 mapping, with live site part-count and episode-page checks. No new metadata requests. Original season one never substitutes TYBW; unknown or changed mappings return no sources. Generic VUEO SRT patch remains required for decimal sidecars.",
+      "notes": "Ravok Japanese HLS. Exact episode coordinates parsed from site links and confirmed on episode pages, including named episode cards. Verified Black Clover TMDB season 1 and Bleach TYBW season 2 part mappings with site range/count checks. Uses website GET season-list route. No new metadata requests. Generic VUEO SRT patch remains applicable.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [],
