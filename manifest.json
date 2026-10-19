@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.35",
+  "version": "1.8.36",
   "scrapers": [
     {
       "id": "allanime",
@@ -144,7 +144,7 @@
       "id": "animetsu",
       "name": "Animetsu",
       "description": "Anime \u00b7 Japanese Sub \u00b7 Animetsu.site \u00b7 Bee HLS + GG MP4",
-      "version": "2.1.2",
+      "version": "2.1.3",
       "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
@@ -163,7 +163,7 @@
         "ja"
       ],
       "runtimeTimeoutMs": 40000,
-      "notes": "v2.1.1 removes GG binary-as-text ftyp preflight: GG sources are accepted from the website API after AniList/episode/Sub metadata and HTTPS URL validation, matching the website player handoff. No MP4 Range/HEAD/body download before returning links. All published MP4 quality options are retained; isActive is the preferred/default rendition marker rather than a disabled-source filter. First valid server completion, title-first search, mapping fallback, subtitle filtering and Bee HLS validation remain. 44 controlled tests passed. Direct Blue Box source/API checks in the build environment returned 403/timeouts; playback and the reported device-specific MP4 rejection resolution require device retest. Other providers unchanged.",
+      "notes": "Title-first search with cached IDs and mapping fallback. Japanese Sub only. Explicit resolutions below 720p excluded; Auto/Unknown retained. GG races deduplicated proxy/direct partial MP4 probes and returns only its first confirmed source. Bee remains eligible in the parallel server race. No signed media cache. A partial MP4 response confirms media availability, not full Android playback.",
       "runtimeModules": [],
       "sourceWebsite": "https://animetsu.site/"
     },
