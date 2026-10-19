@@ -1,4 +1,4 @@
-/* CloudAnime Animetsu v2.1.1 — animetsu.site client-engine Bee Sub adapter. */
+/* CloudAnime Animetsu v2.1.2 — animetsu.site client-engine Bee Sub adapter. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "439c478a771f35c05022f9feabcca01c", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
   function response(data, status) {
@@ -402,6 +402,13 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
           try {url=https(new URL(raw,'https://api.animetsu.site/').href);} catch (_) {}
           if(!url||seen[url])return;seen[url]=true;
           found.push({name:'Animetsu',provider:'animetsu',serverName:'GG',title:(mapped.anime_title||'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:url,quality:s.quality||'Auto',type:'mp4',mimeType:'video/mp4',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]});
+        });
+        // Keep the website proxy first, with an explicit direct option when that
+        // host fails in the native player. Do not rewrite or cache signed URLs.
+        streams.slice(0,6).forEach(function(s) {
+          var url=https(s.url);
+          if(!url||seen[url])return;seen[url]=true;
+          found.push({name:'Animetsu',provider:'animetsu',serverName:'GG Direct',title:(mapped.anime_title||'Anime')+' • Episode '+mapped.episode+' • Japanese Sub • Direct',url:url,quality:s.quality||'Auto',type:'mp4',mimeType:'video/mp4',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]});
         });
         if(!found.length)throw Error('GG returned no published Sub MP4 source');
         log('SOURCE','GG published Sub MP4 qualities='+found.length+'; ID/episode/audio matched; no binary-text preflight');

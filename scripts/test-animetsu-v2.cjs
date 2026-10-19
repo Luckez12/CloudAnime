@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const code=fs.readFileSync(require('path').resolve(__dirname,'../providers/animetsu.js'),'utf8');
+const code=fs.readFileSync('animetsu_update/providers/animetsu.js','utf8');
 const clone=x=>JSON.parse(JSON.stringify(x));
 const row={themoviedb:100,'themoviedb-season':1,thetvdb:300,'thetvdb-season':1,anilist:200,myanimelist:400,media:'TV',imdb:'tt12345'};
 const zip={mappings:{themoviedb_id:100,mal_id:400,anilist_id:200,thetvdb_id:300,type:'TV'},titles:{en:'Fixture Anime',ja:'テスト'},episodes:{1:{episode:'1',airdate:'2025-01-01',tvdbShowId:300,tvdbId:301,seasonNumber:1,episodeNumber:1,absoluteEpisodeNumber:1}},episodeCount:1};
@@ -69,11 +69,13 @@ let passed=0;async function test(name,fn){await fn();passed++;console.log('PASS'
  await test('Wrong-content shared context is not reused',async()=>{const c=clone(base.context);c.tmdbId='999';c.tmdb.name='Wrong';const r=await run({context:c});assert(r.streams.length);assert(r.calls.some(x=>x.u.includes('api.themoviedb')))});
  await test('GG returns published source without any binary preflight request',async()=>{const r=await run({beeDelay:1000,ggDelay:0});assert.equal(r.streams[0].serverName,'GG');assert(!r.calls.some(x=>x.u.includes('/proxy?')||x.u.includes('gg.test')))});
  await test('GG cannot fail because the runtime decodes binary response text',async()=>{const r=await run({beeStatus:503,mp4:'corrupted text decoding'});assert.equal(r.streams[0].serverName,'GG')});
- await test('Website default quality retained along with alternate MP4 qualities',async()=>{const g=clone(base.gg);g.streams.push({...g.streams[0],quality:'720p',isActive:false,proxied_url:'/proxy?url=alternate'});const r=await run({gg:g,beeDelay:1000,ggDelay:0});assert.equal(r.streams.length,2);assert.equal(r.streams[0].quality,'1080p');assert.equal(r.streams[1].quality,'720p')});
+ await test('Website default quality retained along with alternate MP4 qualities',async()=>{const g=clone(base.gg);g.streams.push({...g.streams[0],quality:'720p',isActive:false,proxied_url:'/proxy?url=alternate'});const r=await run({gg:g,beeDelay:1000,ggDelay:0});assert.equal(r.streams.length,3);assert.equal(r.streams[0].quality,'1080p');assert.equal(r.streams[1].quality,'720p')});
  await test('Published MP4 remains usable without isActive true',async()=>{const g=clone(base.gg);g.streams[0].isActive=false;assert.equal((await run({gg:g,beeStatus:503})).streams[0].serverName,'GG')});
- await test('Duplicate published MP4 URLs collapse',async()=>{const g=clone(base.gg);g.streams.push(g.streams[0]);assert.equal((await run({gg:g,beeStatus:503})).streams.length,1)});
+ await test('Duplicate published MP4 URLs collapse',async()=>{const g=clone(base.gg);g.streams.push(g.streams[0]);assert.equal((await run({gg:g,beeStatus:503})).streams.length,2)});
  await test('Iframe entries are never returned as native MP4',async()=>{const g=clone(base.gg);g.streams[0].type='embed';assert.equal((await run({gg:g,beeStatus:503})).streams.length,0)});
  await test('Malformed MP4 source URL is rejected',async()=>{const g=clone(base.gg);g.streams[0].url='not a URL';delete g.streams[0].proxied_url;assert.equal((await run({gg:g,beeStatus:503})).streams.length,0)});
  await test('Dub GG response is rejected before publishing media',async()=>{const g=clone(base.gg);g.audio='dub';assert.equal((await run({gg:g,beeStatus:503})).streams.length,0)});
+ await test('GG direct alternative bypasses failing API proxy with original headers',async()=>{const r=await run({beeStatus:503});const d=r.streams.find(s=>s.serverName==='GG Direct');assert(d);assert.equal(d.url,'https://gg.test/video.mp4');assert.equal(d.headers.Referer,'https://www.animegg.org/');assert.equal(r.streams[0].serverName,'GG');assert(!r.calls.some(x=>x.u.includes('gg.test')))});
+ await test('Direct option cannot publish an unsafe URL',async()=>{const g=clone(base.gg);g.streams[0].url='javascript:alert(1)';const r=await run({gg:g,beeStatus:503});assert.equal(r.streams.length,1);assert.equal(r.streams[0].serverName,'GG')});
  console.log('TOTAL',passed,'passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
