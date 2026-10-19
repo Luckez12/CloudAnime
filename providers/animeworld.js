@@ -1,9 +1,19 @@
-/* CloudAnime AnimeWorld v2.0.3 — exact catalogue episode; original audio verified; one discovery path. */
+/* CloudAnime AnimeWorld v2.0.4 — exact catalogue episode; original audio verified; one discovery path. */
 (function () {
   "use strict";
   var SITE = "https://watchanimeworld.one";
   var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
   var cache = Object.create(null), cacheKeys = [];
+  var catalogueCache=Object.create(null),catalogueKeys=[];
+  function metadataCache(op,key,value){
+    if(typeof globalThis!=='undefined'&&typeof globalThis.vueoMetadataCache==='function'){
+      try{return JSON.parse(globalThis.vueoMetadataCache(JSON.stringify({op:op,key:key,value:value,ttlMs:300000})));}catch(_){}
+    }
+    if(op==='get'){var hit=catalogueCache[key];return hit&&Date.now()-hit.time<300000?JSON.parse(JSON.stringify(hit.value)):null;}
+    if(op==='remove'){delete catalogueCache[key];return true;}
+    if(op==='put'){catalogueCache[key]={value:JSON.parse(JSON.stringify(value)),time:Date.now()};if(!catalogueKeys.includes(key))catalogueKeys.push(key);while(catalogueKeys.length>16)delete catalogueCache[catalogueKeys.shift()];return true;}
+    return null;
+  }
   function log(stage, message) { console.log("[AnimeWorld] " + stage + ": " + message); }
   function noMatch(message) {var e=new Error(message);e.name='AnimeWorldNoMatch';throw e;}
   function positive(v) { var n=Number(v);return Number.isInteger(n)&&n>0?n:null; }
@@ -47,21 +57,24 @@
     return /^(?:19|20)\d{2}$/.test(year)?{title:heading(primary[0]),year:year}:null;
   }
   function links(html) {var tags=html.match(/<a\b[^>]*>/gi)||[];return tags.map(function(tag){return {url:address(attr(tag,'href'),SITE),tag:tag};}).filter(function(v){return !!v.url;});}
-  function episodes(html,season,episode) {
-    var matches=[],articles=html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[];
+  function episodeIndex(html) {
+    var routes=Object.create(null),articles=html.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi)||[];
     articles.forEach(function(article){
       var h=/<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(article);
       var caption=h&&/(?:^|\s)(\d+)x(\d+)\s*$/i.exec(textContent(h[1]));
-      // Episode names may contain no coordinates. Resolve exact numbers from
-      // the site's own link, then confirm them again on the episode page.
       links(article).forEach(function(v){
         var u=new URL(v.url),m=/^\/episode\/[^/]+-(\d+)x(\d+)\/?$/.exec(u.pathname);
-        if(u.origin!==SITE||!m||Number(m[1])!==season||Number(m[2])!==episode)return;
-        if(caption&&(Number(caption[1])!==season||Number(caption[2])!==episode))return;
-        if(!matches.includes(v.url))matches.push(v.url);
+        if(u.origin!==SITE||!m||caption&&(Number(caption[1])!==Number(m[1])||Number(caption[2])!==Number(m[2])))return;
+        var key=Number(m[1])+':'+Number(m[2]);
+        if(!Object.prototype.hasOwnProperty.call(routes,key))routes[key]=v.url;
+        else if(routes[key]!==v.url)routes[key]='';
       });
-    });
-    return matches.length===1?matches[0]:'';
+    });return routes;
+  }
+  function episodes(html,season,episode){return episodeIndex(html)[season+':'+episode]||'';}
+  function catalogueSnapshot(html){
+    var tags=(html.match(/<a\b[^>]*>/gi)||[]).filter(function(t){return attr(t,'data-post')!==''&&attr(t,'data-season')!=='';});
+    return {seasons:tags.map(function(t){return {season:Number(attr(t,'data-season')),post:attr(t,'data-post')};}),routes:episodeIndex(html)};
   }
   function verifyEpisode(page,url,found,season,episode){
     // The URL was selected from the verified series' published cards/AJAX response.
@@ -113,7 +126,7 @@
   async function getStreams(id,type,season,episode) {
     id=String(id||'');type=type==='series'?'tv':type;season=Number(season);episode=type==='movie'?1:Number(episode);
     if(!/^\d+$/.test(id)||!['tv','movie'].includes(type)||(type==='tv'&&(!Number.isInteger(season)||season<0||!positive(episode))))return [];
-    var deadline=Date.now()+18000,calls=0;
+    var deadline=Date.now()+18000,calls=0,catalogueKey='catalogue-v1:'+SITE+':'+type+':'+id;
     async function text(url,headers,body) {
       var left=Math.min(10000,deadline-Date.now());if(left<=0)throw Error('Request budget exhausted');
       var timer,controller=typeof AbortController==='function'?new AbortController():null;calls++;
@@ -139,6 +152,13 @@
     }
     async function findTitle(meta){
       if(!meta.title||!/^\d{4}$/.test(meta.year))throw Error('Verified title/year metadata required');
+      var cached=type==='tv'?metadataCache('get',catalogueKey):null;
+      if(cached){
+        var u=address(cached.url,SITE),valid=u&&new URL(u).origin===SITE&&/^\/series\/[^/]+\/$/.test(new URL(u).pathname)&&
+          cached.year===meta.year&&meta.titles.some(function(t){return normal(t)===normal(cached.title);})&&cached.snapshot&&Array.isArray(cached.snapshot.seasons)&&cached.snapshot.routes&&typeof cached.snapshot.routes==='object';
+        if(valid){log('CACHE','Verified catalogue hit; '+(typeof globalThis.vueoMetadataCache==='function'?'shared across executions':'current runtime only'));return {url:u,title:cached.title,year:cached.year,snapshot:cached.snapshot,cached:true};}
+        metadataCache('remove',catalogueKey);
+      }
       var names=meta.titles.filter(function(v){return typeof v==='string'&&normal(v);}),keys=names.map(normal),attempts=[meta.title];
       names.forEach(function(t){if(!attempts.some(function(q){return normal(q)===normal(t);}))attempts.push(t);});
       var seen=Object.create(null),plans=[];
@@ -161,28 +181,44 @@
           return {url:url,html:page,title:identity.title};
         }))).filter(Boolean);
         if(matches.length>1)noMatch('Multiple exact title/year matches; skipped');
-        if(matches.length===1)return matches[0];
+        if(matches.length===1){
+          var found=matches[0];
+          if(type==='tv'){found.year=meta.year;found.snapshot=catalogueSnapshot(found.html);saveCatalogue(found);}
+          return found;
+        }
       }noMatch('No exact title/year match for '+meta.title+' ('+meta.year+'); no substitute series selected');
     }
+    function saveCatalogue(found){metadataCache('put',catalogueKey,{url:found.url,title:found.title,year:found.year,snapshot:found.snapshot});}
     async function episodePage(found,route) {
       if(type==='movie')return found;
-      var targetSeason=route.season,targetEpisode=route.episode;
-      var seasonTags=(found.html.match(/<a\b[^>]*>/gi)||[]).filter(function(t){return attr(t,'data-post')!==''&&attr(t,'data-season')!==''&&Number(attr(t,'data-season'))===targetSeason;});
+      var targetSeason=route.season,targetEpisode=route.episode,snapshot=found.snapshot;
+      var seasonTags=snapshot.seasons.filter(function(t){return t.season===targetSeason;});
       if(seasonTags.length!==1)noMatch('Exact requested site season unavailable: S'+targetSeason);
-      var url=episodes(found.html,targetSeason,targetEpisode);
-      if(!url){var post=attr(seasonTags[0],'data-post');if(!/^\d+$/.test(post))throw Error('Missing season identity');var html=await text(SITE+'/wp-admin/admin-ajax.php?action=action_select_season&season='+targetSeason+'&post='+post,{'X-Requested-With':'XMLHttpRequest',Referer:found.url});url=episodes(html,targetSeason,targetEpisode);}
+      var key=targetSeason+':'+targetEpisode,url=snapshot.routes[key];
+      if(!url){
+        var post=seasonTags[0].post;if(!/^\d+$/.test(post))throw Error('Missing season identity');
+        var html=await text(SITE+'/wp-admin/admin-ajax.php?action=action_select_season&season='+targetSeason+'&post='+post,{'X-Requested-With':'XMLHttpRequest',Referer:found.url}),fresh=episodeIndex(html);
+        Object.keys(snapshot.routes).forEach(function(k){if(k.split(':')[0]===String(targetSeason))delete snapshot.routes[k];});
+        Object.keys(fresh).forEach(function(k){if(k.split(':')[0]===String(targetSeason))snapshot.routes[k]=fresh[k];});
+        url=snapshot.routes[key];if(url)saveCatalogue(found);
+      }
       if(!url)noMatch('Exact site episode unavailable: S'+targetSeason+'E'+targetEpisode);
-      var page=await text(url);verifyEpisode(page,url,found,targetSeason,targetEpisode);
+      var selected=address(url,SITE),coordinates=selected&&/^\/episode\/[^/]+-(\d+)x(\d+)\/$/.exec(new URL(selected).pathname);
+      if(!selected||new URL(selected).origin!==SITE||!coordinates||Number(coordinates[1])!==targetSeason||Number(coordinates[2])!==targetEpisode)noMatch('Cached episode route conflicts with request');
+      url=selected;var page=await text(url);verifyEpisode(page,url,found,targetSeason,targetEpisode);
       return {url:url,html:page,title:found.title};
     }
     async function extractPlayer(page,players){
       return (await Promise.all(players.slice(0,2).map(async function(p){try{
         var headers={'User-Agent':UA,Referer:p.url,Origin:p.origin};
-        var results=await Promise.all([text(p.url,{Referer:page.url}).catch(function(e){log('SUBTITLE','Player metadata unavailable: '+e.message);return ''; }),text(p.origin+'/player/index.php?data='+p.id+'&do=getVideo',Object.assign({},headers,{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'}),'hash='+p.id+'&r='+encodeURIComponent(page.url))]);
-        var config={};if(results[0]){try{config=settings(results[0],p.id);}catch(e){log('SUBTITLE',e.message);}}
-        var data=JSON.parse(results[1]),url=address(data.securedLink||data.videoSource,p.url);
-        if(data.hls!==true||!url)throw Error('No native HLS source');
-        var master=await text(url,headers);
+        // Start HLS immediately after the API response; optional subtitle metadata runs alongside it.
+        var configPromise=text(p.url,{Referer:page.url}).then(function(html){return settings(html,p.id);}).catch(function(e){log('SUBTITLE','Player metadata unavailable: '+e.message);return {};});
+        var mediaPromise=text(p.origin+'/player/index.php?data='+p.id+'&do=getVideo',Object.assign({},headers,{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'}),'hash='+p.id+'&r='+encodeURIComponent(page.url)).then(async function(body){
+          var data=JSON.parse(body),url=address(data.securedLink||data.videoSource,p.url);
+          if(data.hls!==true||!url)throw Error('No native HLS source');
+          return {url:url,master:await text(url,headers)};
+        });
+        var results=await Promise.all([configPromise,mediaPromise]),config=results[0],url=results[1].url,master=results[1].master;
         if(!/^#EXTM3U(?:\r?\n|$)/.test(master.trim())||!/#EXT-X-STREAM-INF:/.test(master))throw Error('Invalid master HLS');
         var japanese=master.split(/\r?\n/).filter(function(l){return /^#EXT-X-MEDIA:/.test(l)&&hlsAttr(l,'TYPE')==='AUDIO'&&/^(?:ja|jp|jpn|japanese)$/i.test(hlsAttr(l,'LANGUAGE'));});
         if(!japanese.length||japanese.some(function(l){return !address(hlsAttr(l,'URI'),url);}))throw Error('No verified Japanese audio rendition');
@@ -203,7 +239,13 @@
     }
     var streams=[];
     try{
-      var meta=await metadata(),found=await findTitle(meta),route={season:season,episode:episode},page=await episodePage(found,route);
+      var meta=await metadata(),found=await findTitle(meta),route={season:season,episode:episode},page;
+      try{page=await episodePage(found,route);}catch(e){
+        metadataCache('remove',catalogueKey);
+        if(!found.cached)throw e;
+        cache=Object.create(null);cacheKeys=[];log('CACHE','Cached episode validation failed; refresh catalogue once');
+        found=await findTitle(meta);page=await episodePage(found,route);
+      }
       log('MATCH',found.title+'; exact title/year');
       if(type==='tv')log('EPISODE','Requested TMDB S'+season+'E'+episode+'; verified site S'+route.season+'E'+route.episode);
       streams=await extract(page);
