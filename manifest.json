@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.28",
+  "version": "1.8.31",
   "scrapers": [
     {
       "id": "allanime",
@@ -104,38 +104,6 @@
       ]
     },
     {
-      "id": "animepahe",
-      "name": "AnimePahe",
-      "description": "Anime · Japanese original audio · exact MAL identity and published Kwik HLS",
-      "version": "2.0.1",
-      "author": "Nuvio Team",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "providers/animepahe.js",
-      "enabled": false,
-      "hasSettings": false,
-      "formats": [
-        "m3u8"
-      ],
-      "logo": "https://i.postimg.cc/c4ZBGNNs/animepahe.png",
-      "contentLanguage": [
-        "en",
-        "ja"
-      ],
-      "runtimeTimeoutMs": 20000,
-      "upstreamSupportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "upstreamVersion": "1.0.1",
-      "notes": "Rebuilt as one engine. Direct TMDB-to-anime ARM mapping plus explicit AniZip identity/season/episode bridge; no IMDb external_ids requests, Jikan, legacy mapper, proxy, random search suffix, first-result fallback, fractional-episode rounding or guessed MP4 URL. Site candidates must publish the exact MAL ID. Only published Japanese-audio Kwik players are requested; native HLS is decoded without executing website code and verified. Optional shared metadata cache supported; signed media stays fresh. Cross-order TMDB/TVDB cases without an explicit same-season coordinate bridge return no results rather than substituting an episode. Settings removed because the former host selector was not usable by VUEO runtime. Disabled by default pending device verification: the cloud browser and direct requests were blocked by AnimePahe security; 29 controlled/fixture scenarios passed, not live playback. Run provider debug manually to verify access and extraction before enabling normally. Version 2.0.1 audited against current upstream source: API/search/release/Kwik routes remain consistent. Supports exact local or absolute release numbers from the validated AniZip episode record, without a guessed offset; two matching release numbers are rejected as ambiguous. This does not resolve the separate HTTP 403 access/session block. Remains disabled pending successful device access and playback.",
-      "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
-      "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": []
-    },
-    {
       "id": "animesalt",
       "name": "AnimeSalt",
       "description": "Anime · Japanese Sub · generic site episode ranges · ARM/AniZip identity bridge · Ravok + MegaPlay",
@@ -175,35 +143,29 @@
     {
       "id": "animetsu",
       "name": "Animetsu",
-      "description": "Anime · Sub only · Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.5",
-      "author": "piratezoro9",
+      "description": "Anime · Japanese Sub · Animetsu.site · Bee HLS + GG MP4",
+      "version": "2.0.0",
+      "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
         "tv"
       ],
       "filename": "providers/animetsu.js",
-      "enabled": false,
-      "hasSettings": true,
+      "enabled": true,
+      "hasSettings": false,
       "formats": [
-        "m3u8"
+        "m3u8",
+        "mp4"
       ],
       "logo": "https://i.postimg.cc/0Q3DvLx7/animetsu.png",
       "contentLanguage": [
         "en",
         "ja"
       ],
-      "runtimeTimeoutMs": 20000,
-      "upstreamSupportedTypes": [
-        "movie",
-        "tv",
-        "anime"
-      ],
-      "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. Disabled pending rebuild: genre gate rejects the current VUEO metadata shape; the configured search API returned HTTP 502 during audit.",
-      "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
-      "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": []
+      "runtimeTimeoutMs": 40000,
+      "notes": "Rebuilt for animetsu.site current public client engine. The website intercepts /v2/api routes in the browser; this provider follows its published Bee and GG Sub source routes directly. Verified ARM/AniZip/TMDB episode dates and AniList/MAL identity, Japanese original-language guard, metadata-only cache, no guessed sequel offsets or first-search-result fallback. Bee: validates HLS, preserves signed media URLs, selects Japanese audio when HLS metadata publishes multiple languages, and includes English/Malay/Indo subtitles with explicit WebVTT MIME for extensionless tracks. GG: requires matching AniList/episode/Sub metadata and an active MP4 source; uses the site-published media URL, verifies bounded 206 byte range and MP4 ftyp. Servers fail independently; no Dub or disabled/iframe-only server requests. No VUEO changes required. 37 regression scenarios passed. Live: One Piece S1E1 Bee HLS; Black Clover S2E1 Bee HLS + GG 1080p MP4; Your Name GG 480p MP4. Server timeouts observed and isolated. Live VUEO playback and subtitle rendering remain unverified.",
+      "runtimeModules": [],
+      "sourceWebsite": "https://animetsu.site/"
     },
     {
       "id": "animeworld",

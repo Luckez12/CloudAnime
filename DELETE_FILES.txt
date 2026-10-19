@@ -1,0 +1,2 @@
+providers/animepahe.js
+docs/animepahe-v2.1.0.md
