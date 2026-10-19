@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.31",
+  "version": "1.8.32",
   "scrapers": [
     {
       "id": "allanime",
@@ -144,7 +144,7 @@
       "id": "animetsu",
       "name": "Animetsu",
       "description": "Anime · Japanese Sub · Animetsu.site · Bee HLS + GG MP4",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
@@ -163,7 +163,7 @@
         "ja"
       ],
       "runtimeTimeoutMs": 40000,
-      "notes": "Rebuilt for animetsu.site current public client engine. The website intercepts /v2/api routes in the browser; this provider follows its published Bee and GG Sub source routes directly. Verified ARM/AniZip/TMDB episode dates and AniList/MAL identity, Japanese original-language guard, metadata-only cache, no guessed sequel offsets or first-search-result fallback. Bee: validates HLS, preserves signed media URLs, selects Japanese audio when HLS metadata publishes multiple languages, and includes English/Malay/Indo subtitles with explicit WebVTT MIME for extensionless tracks. GG: requires matching AniList/episode/Sub metadata and an active MP4 source; uses the site-published media URL, verifies bounded 206 byte range and MP4 ftyp. Servers fail independently; no Dub or disabled/iframe-only server requests. No VUEO changes required. 37 regression scenarios passed. Live: One Piece S1E1 Bee HLS; Black Clover S2E1 Bee HLS + GG 1080p MP4; Your Name GG 480p MP4. Server timeouts observed and isolated. Live VUEO playback and subtitle rendering remain unverified.",
+      "notes": "Animetsu.site Bee/GG Japanese Sub. v2.0.1 returns the first server with validated playable media and cancels the remaining extraction; errors and empty results cannot win. Adds a generic catalogue fallback when the primary ARM mapping is unavailable: TMDB native title and episode dates, exact AniList/Jikan native-title candidate, matching MAL/AniList dataset identity and constant premiere/broadcast schedule evidence. Conflicting TMDB identities, absent episodes and ambiguous matches remain rejected. Validated fallback identities are cached across episodes; signed media is refreshed. All 44 regression scenarios passed. Live Black Clover S2E1 and Overgeared S1E1 returned GG 1080p first without waiting for Bee. Overgeared 324502 mapping corrected by checking both published streaming and TV dates rather than discarding the TV date when streaming aired earlier. Catalogue fallback remains separately covered by controlled tests; its live search was blocked in the build environment. Existing HLS/MP4 validation and English/Malay/Indo subtitle behavior retained. No VUEO changes required.",
       "runtimeModules": [],
       "sourceWebsite": "https://animetsu.site/"
     },
