@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.33",
+  "version": "1.8.34",
   "scrapers": [
     {
       "id": "allanime",
@@ -144,7 +144,7 @@
       "id": "animetsu",
       "name": "Animetsu",
       "description": "Anime · Japanese Sub · Animetsu.site · Bee HLS + GG MP4",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
@@ -163,7 +163,7 @@
         "ja"
       ],
       "runtimeTimeoutMs": 40000,
-      "notes": "Fast-route order: confirmed source-ID cache; TMDB direct only where supported (Bee/GG do not support it, so skipped with zero speculative requests); website catalogue title search using shared VUEO metadata; full ARM/AniZip/date mapping only when search is unavailable, ambiguous or yields no usable source. Unique AniList title hits go directly to Bee/GG without ARM/AniZip/season/origin requests. Jikan hits require only a direct MAL-to-AniList lookup. Explicit season-title matches required for direct sequel selection. Removed mandatory country/origin+MAL cache gate that could reject valid Japanese content. Preserves Sub/audio and HLS/MP4 source validation, English/Malay/Indo subtitles and first-valid-server completion. Invalidates failed title entries and avoids repeat source calls when fallback confirms identical coordinates. 38 controlled scenarios passed. Cold live 237150 mapping completed after catalogue failures; full cold discovery exhausted the build-environment budget. Live title search itself remained blocked/unavailable there (AniList 403/Jikan 503). Requires device timing/playback verification.",
+      "notes": "v2.1.1 removes GG binary-as-text ftyp preflight: GG sources are accepted from the website API after AniList/episode/Sub metadata and HTTPS URL validation, matching the website player handoff. No MP4 Range/HEAD/body download before returning links. All published MP4 quality options are retained; isActive is the preferred/default rendition marker rather than a disabled-source filter. First valid server completion, title-first search, mapping fallback, subtitle filtering and Bee HLS validation remain. 44 controlled tests passed. Direct Blue Box source/API checks in the build environment returned 403/timeouts; playback and the reported device-specific MP4 rejection resolution require device retest. Other providers unchanged.",
       "runtimeModules": [],
       "sourceWebsite": "https://animetsu.site/"
     },

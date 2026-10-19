@@ -1,4 +1,4 @@
-/* CloudAnime Animetsu v2.1.0 — animetsu.site client-engine Bee Sub adapter. */
+/* CloudAnime Animetsu v2.1.1 — animetsu.site client-engine Bee Sub adapter. */
 function cloudbankAnimeMappingFetch(nativeFetch) {
   var cache = Object.create(null), cacheKeys = [], tmdbKey = "439c478a771f35c05022f9feabcca01c", documents = Object.create(null), documentKeys = [], malTitles = Object.create(null), titleKeys = [];
   function response(data, status) {
@@ -181,7 +181,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
   }
   function cached(op, key, value) {
     if (typeof globalThis.vueoMetadataCache !== 'function') return null;
-    try { return JSON.parse(globalThis.vueoMetadataCache(JSON.stringify({op:op,key:'animetsu210:'+key,value:value,ttlMs:300000}))); } catch (_) { return null; }
+    try { return JSON.parse(globalThis.vueoMetadataCache(JSON.stringify({op:op,key:'animetsu211:'+key,value:value,ttlMs:300000}))); } catch (_) { return null; }
   }
   function compact(url, data) {
     if (url.indexOf('https://api.ani.zip/mappings?') === 0 && data && data.episodes) {
@@ -218,7 +218,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
     season = Number(season); episode = type === 'movie' ? 1 : Number(episode);
     if (!/^[1-9]\d*$/.test(id) || !['tv','movie'].includes(type) || type === 'tv' && (!Number.isInteger(season) || season < 0 || !positive(episode))) return [];
     var deadline = Date.now() + 36000, calls = 0, result = [], sourceSettled = false, pendingRequests = new Set();
-    async function request(url, options, rangeProbe, maxMs) {
+    async function request(url, options, maxMs) {
       var budget = Math.min(maxMs || 10000, deadline - Date.now());
       if (budget <= 0) throw Error('Request budget exhausted');
       var timer, cancel, controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -232,7 +232,6 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
             if (controller) opts.signal = controller.signal;
             var response = await fetch(url,opts);
             if (!response.ok) throw Error('HTTP '+response.status+' at '+new URL(url).hostname);
-            if (rangeProbe && (response.status !== 206 || !response.headers || !/^bytes 0-\d+\//i.test(response.headers.get('content-range') || '') || Number(response.headers.get('content-length')) > 4096)) throw Error('MP4 server did not honor the bounded Range request');
             var body = await response.text();
             if (body.length > 4000000) throw Error('Response too large');
             return {body:body,headers:response.headers};
@@ -244,7 +243,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
     async function metadata(url, maxMs) {
       var hit = cached('get',url);
       if (hit) return hit;
-      var data = compact(url, JSON.parse((await request(url,undefined,false,maxMs)).body));
+      var data = compact(url, JSON.parse((await request(url,undefined,maxMs)).body));
       if (data && !data.error && (!Array.isArray(data) || data.length)) cached('put',url,data);
       return data;
     }
@@ -289,7 +288,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
         var payload=JSON.parse((await request('https://graphql.anilist.co',{
           method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
           body:JSON.stringify({query:'query($search:String!){Page(perPage:6){media(search:$search,type:ANIME){id idMal format title{romaji english native} synonyms}}}',variables:{search:query}})
-        },false,3500)).body);
+        },3500)).body);
         var entries=payload&&payload.data&&payload.data.Page&&payload.data.Page.media;
         candidates=(Array.isArray(entries)?entries:[]).filter(Boolean).map(function(a) {var t=a.title||{};return {ani:positive(a.id),mal:positive(a.idMal),format:a.format,names:[t.english,t.romaji,t.native].concat(a.synonyms||[])};}).filter(accept);
       } catch(e) {log('SEARCH','AniList catalogue unavailable; trying website Jikan search');}
@@ -392,17 +391,21 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
       async function ggStreams() {
         var data = JSON.parse((await request('https://api.animetsu.site/watch/animegg/'+mapped.anilist+'/sub/animegg-'+mapped.episode)).body);
         if (data.error || Number(data.anilistId) !== mapped.anilist || Number(data.episode) !== mapped.episode || data.providerEpisode != null && Number(data.providerEpisode) !== mapped.episode || !/^(?:sub|subbed)$/i.test(data.audio || '') || !japanese(data)) throw Error('GG response identity/audio does not match request');
-        var streams = (Array.isArray(data.streams) ? data.streams : []).filter(function(s) {return s && s.isActive !== false && s.type === 'mp4' && japanese(s);});
-        streams.sort(function(a,b) {return (parseInt(b.quality)||0)-(parseInt(a.quality)||0);});
-        if (!streams.length) throw Error('GG has no active MP4 source');
-        var selected = streams[0], raw = selected.proxied_url || (selected.url === data.stream_url ? data.proxied_stream_url : '') || selected.url, url;
-        try {url = https(new URL(raw,'https://api.animetsu.site/').href);} catch (_) {}
-        if (!url) throw Error('GG media URL invalid');
-        var headers = {'User-Agent':UA,Referer:'https://www.animegg.org/'};
-        var probe = await request(url,{headers:Object.assign({},headers,{Range:'bytes=0-511'})},true);
-        if (probe.body.slice(4,8) !== 'ftyp') throw Error('GG media is not an ISO MP4 file');
-        log('SOURCE','GG active '+(selected.quality || 'Auto')+' MP4; 206 Range and ftyp verified');
-        return [{name:'Animetsu',provider:'animetsu',serverName:'GG',title:(mapped.anime_title || 'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:url,quality:selected.quality || 'Auto',type:'mp4',mimeType:'video/mp4',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]}];
+        // isActive marks the website's default quality, not a disabled rendition.
+        // The website exposes all published MP4 qualities, without a binary/text probe.
+        var streams=(Array.isArray(data.streams)?data.streams:[]).filter(function(s) {return s&&s.type==='mp4'&&japanese(s);});
+        streams.sort(function(a,b) {return Number(b.isActive===true)-Number(a.isActive===true)||(parseInt(b.quality)||0)-(parseInt(a.quality)||0);});
+        var headers={'User-Agent':UA,Referer:'https://www.animegg.org/'},seen=Object.create(null),found=[];
+        streams.slice(0,6).forEach(function(s) {
+          var raw=s.proxied_url || (s.url===data.stream_url?data.proxied_stream_url:'') || s.url,url;
+          if(typeof raw!=='string'||!/^https:\/\/|^\/(?!\/)/i.test(raw))return;
+          try {url=https(new URL(raw,'https://api.animetsu.site/').href);} catch (_) {}
+          if(!url||seen[url])return;seen[url]=true;
+          found.push({name:'Animetsu',provider:'animetsu',serverName:'GG',title:(mapped.anime_title||'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:url,quality:s.quality||'Auto',type:'mp4',mimeType:'video/mp4',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]});
+        });
+        if(!found.length)throw Error('GG returned no published Sub MP4 source');
+        log('SOURCE','GG published Sub MP4 qualities='+found.length+'; ID/episode/audio matched; no binary-text preflight');
+        return found;
       }
       async function discoverSources() {
       sourceSettled=false;
