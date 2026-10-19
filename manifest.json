@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.32",
+  "version": "1.8.33",
   "scrapers": [
     {
       "id": "allanime",
@@ -144,7 +144,7 @@
       "id": "animetsu",
       "name": "Animetsu",
       "description": "Anime · Japanese Sub · Animetsu.site · Bee HLS + GG MP4",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
@@ -163,7 +163,7 @@
         "ja"
       ],
       "runtimeTimeoutMs": 40000,
-      "notes": "Animetsu.site Bee/GG Japanese Sub. v2.0.1 returns the first server with validated playable media and cancels the remaining extraction; errors and empty results cannot win. Adds a generic catalogue fallback when the primary ARM mapping is unavailable: TMDB native title and episode dates, exact AniList/Jikan native-title candidate, matching MAL/AniList dataset identity and constant premiere/broadcast schedule evidence. Conflicting TMDB identities, absent episodes and ambiguous matches remain rejected. Validated fallback identities are cached across episodes; signed media is refreshed. All 44 regression scenarios passed. Live Black Clover S2E1 and Overgeared S1E1 returned GG 1080p first without waiting for Bee. Overgeared 324502 mapping corrected by checking both published streaming and TV dates rather than discarding the TV date when streaming aired earlier. Catalogue fallback remains separately covered by controlled tests; its live search was blocked in the build environment. Existing HLS/MP4 validation and English/Malay/Indo subtitle behavior retained. No VUEO changes required.",
+      "notes": "Fast-route order: confirmed source-ID cache; TMDB direct only where supported (Bee/GG do not support it, so skipped with zero speculative requests); website catalogue title search using shared VUEO metadata; full ARM/AniZip/date mapping only when search is unavailable, ambiguous or yields no usable source. Unique AniList title hits go directly to Bee/GG without ARM/AniZip/season/origin requests. Jikan hits require only a direct MAL-to-AniList lookup. Explicit season-title matches required for direct sequel selection. Removed mandatory country/origin+MAL cache gate that could reject valid Japanese content. Preserves Sub/audio and HLS/MP4 source validation, English/Malay/Indo subtitles and first-valid-server completion. Invalidates failed title entries and avoids repeat source calls when fallback confirms identical coordinates. 38 controlled scenarios passed. Cold live 237150 mapping completed after catalogue failures; full cold discovery exhausted the build-environment budget. Live title search itself remained blocked/unavailable there (AniList 403/Jikan 503). Requires device timing/playback verification.",
       "runtimeModules": [],
       "sourceWebsite": "https://animetsu.site/"
     },
