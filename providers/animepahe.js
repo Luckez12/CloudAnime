@@ -1,4 +1,4 @@
-/* CloudAnime AnimePahe v2.0.0 — one exact identity path; native published Kwik HLS only. */
+/* CloudAnime AnimePahe v2.0.1 — one exact identity path; native published Kwik HLS only. */
 (function(){
   'use strict';
   var SITE='https://animepahe.pw',UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -57,7 +57,7 @@
       if(type==='tv')rows=rows.filter(function(r){return positive(r.thetvdb)&&r['thetvdb-season']!=null&&Number(r['thetvdb-season'])===season;});
       if(!rows.length||rows.length>6)unavailable('No bounded explicit TMDB/TVDB season bridge; no episode-number guess');
       var datasets=await Promise.all(rows.map(function(r){return json('https://api.ani.zip/mappings?mal_id='+r.myanimelist,function(d){
-        var es=d.episodes||{},items=[];Object.keys(es).forEach(function(k){var e=es[k];if(e)items.push({episode:e.episode,seasonNumber:e.seasonNumber,episodeNumber:e.episodeNumber,tvdbShowId:e.tvdbShowId});});
+        var es=d.episodes||{},items=[];Object.keys(es).forEach(function(k){var e=es[k];if(e)items.push({episode:e.episode,seasonNumber:e.seasonNumber,episodeNumber:e.episodeNumber,absoluteEpisodeNumber:e.absoluteEpisodeNumber,tvdbShowId:e.tvdbShowId});});
         return {mappings:d.mappings,titles:d.titles,episodes:items};
       });})),matches=[];
       datasets.forEach(function(d,index){
@@ -65,7 +65,7 @@
         var found=type==='movie'?(m.type==='MOVIE'?[{episode:1}]:[]):(d.episodes||[]).filter(function(e){return Number(m.thetvdb_id)===Number(r.thetvdb)&&Number(e.tvdbShowId)===Number(r.thetvdb)&&e.seasonNumber!=null&&Number(e.seasonNumber)===season&&Number(e.episodeNumber)===episode&&positive(e.episode);});
         if(found.length!==1)return;
         var titles=d.titles||{},aliases=Object.keys(titles).map(function(k){return titles[k];}).filter(function(t){return typeof t==='string'&&normal(t);});
-        if(aliases.length)matches.push({mal:Number(r.myanimelist),episode:Number(found[0].episode),title:titles['x-jat']||titles.en||titles.ja||aliases[0],aliases:aliases});
+        if(aliases.length)matches.push({mal:Number(r.myanimelist),episode:Number(found[0].episode),absoluteEpisode:positive(found[0].absoluteEpisodeNumber),title:titles['x-jat']||titles.en||titles.ja||aliases[0],aliases:aliases});
       });
       if(matches.length!==1)unavailable('Exact anime episode candidates='+matches.length+'; no substitute selected');
       memo('put',key,matches[0]);log('MAPPING','TMDB '+id+(type==='tv'?' S'+season+'E'+episode:' movie')+' -> MAL '+matches[0].mal+' E'+matches[0].episode+'; explicit identity/coordinates');return matches[0];
@@ -90,7 +90,9 @@
     }
     async function release(entry,mapped){
       var prefix=SITE+'/api?m=release&id='+entry.session+'&sort=episode_asc&page=',first=await json(prefix+'1'),data=first;
-      function exact(d){return (d.data||[]).filter(function(e){return Number(e.episode)===mapped.episode&&session(e.session)&&!/^(?:eng|english|dub)$/i.test(String(e.audio||''));});}
+      // The site can publish local or absolute numbering. Accept only the dataset's explicit numbers.
+      var numbers=[mapped.episode];if(positive(mapped.absoluteEpisode)&&!numbers.includes(mapped.absoluteEpisode))numbers.push(mapped.absoluteEpisode);
+      function exact(d){return (d.data||[]).filter(function(e){return numbers.includes(Number(e.episode))&&session(e.session)&&!/^(?:eng|english|dub)$/i.test(String(e.audio||''));});}
       var found=exact(first);
       if(!found.length){var per=positive(first.per_page),last=positive(first.last_page),page=per?Math.ceil(mapped.episode/per):0;
         if(page>1&&last&&page<=last){data=await json(prefix+page);found=exact(data);}
@@ -128,7 +130,7 @@
         return {name:'AnimePahe',provider:'animepahe',serverName:'Kwik',title:entry.title+' • Episode '+mapped.episode+' • Japanese Original',url:playback,quality:p.quality,type:'hls',mimeType:'application/x-mpegURL',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]};
       }catch(e){log('SOURCE',e.message);return null;}}))).filter(Boolean);
     }
-    try{var mapped=await mapping(),entry=await findAnime(mapped),selected=await release(entry,mapped);log('EPISODE','Exact MAL '+mapped.mal+' E'+mapped.episode+'; published site session');streams=await extract(entry,selected,mapped);}
+    try{var mapped=await mapping(),entry=await findAnime(mapped),selected=await release(entry,mapped);log('EPISODE','Exact MAL '+mapped.mal+' E'+mapped.episode+'; published site episode '+selected.episode);streams=await extract(entry,selected,mapped);}
     catch(e){log('NO_RESULT',e.message);}
     log('RESULT',streams.length+' original-audio sources, '+calls+' HTTP calls');return streams;
   }

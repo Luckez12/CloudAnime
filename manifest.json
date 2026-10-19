@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.27",
+  "version": "1.8.28",
   "scrapers": [
     {
       "id": "allanime",
@@ -107,7 +107,7 @@
       "id": "animepahe",
       "name": "AnimePahe",
       "description": "Anime · Japanese original audio · exact MAL identity and published Kwik HLS",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -130,7 +130,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.1",
-      "notes": "Rebuilt as one engine. Direct TMDB-to-anime ARM mapping plus explicit AniZip identity/season/episode bridge; no IMDb external_ids requests, Jikan, legacy mapper, proxy, random search suffix, first-result fallback, fractional-episode rounding or guessed MP4 URL. Site candidates must publish the exact MAL ID. Only published Japanese-audio Kwik players are requested; native HLS is decoded without executing website code and verified. Optional shared metadata cache supported; signed media stays fresh. Cross-order TMDB/TVDB cases without an explicit same-season coordinate bridge return no results rather than substituting an episode. Settings removed because the former host selector was not usable by VUEO runtime. Disabled by default pending device verification: the cloud browser and direct requests were blocked by AnimePahe security; 29 controlled/fixture scenarios passed, not live playback. Run provider debug manually to verify access and extraction before enabling normally.",
+      "notes": "Rebuilt as one engine. Direct TMDB-to-anime ARM mapping plus explicit AniZip identity/season/episode bridge; no IMDb external_ids requests, Jikan, legacy mapper, proxy, random search suffix, first-result fallback, fractional-episode rounding or guessed MP4 URL. Site candidates must publish the exact MAL ID. Only published Japanese-audio Kwik players are requested; native HLS is decoded without executing website code and verified. Optional shared metadata cache supported; signed media stays fresh. Cross-order TMDB/TVDB cases without an explicit same-season coordinate bridge return no results rather than substituting an episode. Settings removed because the former host selector was not usable by VUEO runtime. Disabled by default pending device verification: the cloud browser and direct requests were blocked by AnimePahe security; 29 controlled/fixture scenarios passed, not live playback. Run provider debug manually to verify access and extraction before enabling normally. Version 2.0.1 audited against current upstream source: API/search/release/Kwik routes remain consistent. Supports exact local or absolute release numbers from the validated AniZip episode record, without a guessed offset; two matching release numbers are rejected as ambiguous. This does not resolve the separate HTTP 403 access/session block. Remains disabled pending successful device access and playback.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": []
