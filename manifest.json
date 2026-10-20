@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.36",
+  "version": "1.8.37",
   "scrapers": [
     {
       "id": "allanime",
@@ -74,7 +74,7 @@
       "id": "anizone",
       "name": "AniZone",
       "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "1.0.8",
+      "version": "2.0.0",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -90,18 +90,19 @@
         "en",
         "ja"
       ],
-      "runtimeTimeoutMs": 20000,
+      "runtimeTimeoutMs": 40000,
       "upstreamSupportedTypes": [
         "movie",
         "tv"
       ],
       "upstreamVersion": "1.0.2",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
+      "notes": "Website title-first search with shared TMDB metadata and confirmed ID cache; TMDB-direct unsupported and skipped. Exact Unicode title/season/type/year matching, no arbitrary first-result fallback or guessed episode offset. ARM/AniZip mapping only after direct title miss/ambiguity. Duplicate anizone-v2 engine removed. Website episode snapshot identity and Japanese HLS audio verified; mixed masters use existing VUEO Japanese-only HLS filter. Returns first validated server. 22 controlled cases passed; real search/episode/HLS sampled, cold runtime network test hit timeouts. Native Android playback remains unverified.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
         "cheerio-without-node-native"
-      ]
+      ],
+      "hasSettings": false
     },
     {
       "id": "animesalt",
