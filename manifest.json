@@ -1,12 +1,12 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.37",
+  "version": "1.8.38",
   "scrapers": [
     {
       "id": "allanime",
       "name": "AllAnime",
       "description": "Anime \u00b7 Japanese Sub \u00b7 exact AniList/MAL identity \u00b7 current website crypto",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -30,7 +30,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Current public website build/bootstrap proof; exact season and episode mapping; verified native HLS/MP4 only. No VUEO site-specific code.",
+      "notes": "Current public website build/bootstrap proof; exact season and episode mapping; verified native HLS/MP4 only. No VUEO site-specific code. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
@@ -42,7 +42,7 @@
       "id": "animekai",
       "name": "AnimeKai",
       "description": "Anime \u00b7 Japanese Sub \u00b7 AnimeKai.li / MegaVid \u00b7 HTTP only",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -64,7 +64,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Uses the website-published noax=1 source fallback to avoid the Animex relay. User logs and live replay confirmed HTTP403 on later video segments for MAL54492/42249 while root/early video loaded; refresh=1 did not fix the sampled failures. Fallback segments at corresponding playback positions returned HTTP206 MPEG-TS. Discovery remains exact ARM/AniZip mapping plus source JSON and master HLS; no extra segment/subtitle probes or app-specific logic. Three HTTP calls for a unique season. Android confirmation remains pending for this fallback fix.",
+      "notes": "Uses the website-published noax=1 source fallback to avoid the Animex relay. User logs and live replay confirmed HTTP403 on later video segments for MAL54492/42249 while root/early video loaded; refresh=1 did not fix the sampled failures. Fallback segments at corresponding playback positions returned HTTP206 MPEG-TS. Discovery remains exact ARM/AniZip mapping plus source JSON and master HLS; no extra segment/subtitle probes or app-specific logic. Three HTTP calls for a unique season. Android confirmation remains pending for this fallback fix. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [],
@@ -74,7 +74,7 @@
       "id": "anizone",
       "name": "AniZone",
       "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -96,7 +96,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.2",
-      "notes": "Website title-first search with shared TMDB metadata and confirmed ID cache; TMDB-direct unsupported and skipped. Exact Unicode title/season/type/year matching, no arbitrary first-result fallback or guessed episode offset. ARM/AniZip mapping only after direct title miss/ambiguity. Duplicate anizone-v2 engine removed. Website episode snapshot identity and Japanese HLS audio verified; mixed masters use existing VUEO Japanese-only HLS filter. Returns first validated server. 22 controlled cases passed; real search/episode/HLS sampled, cold runtime network test hit timeouts. Native Android playback remains unverified.",
+      "notes": "Website title-first search with shared TMDB metadata and confirmed ID cache; TMDB-direct unsupported and skipped. Exact Unicode title/season/type/year matching, no arbitrary first-result fallback or guessed episode offset. ARM/AniZip mapping only after direct title miss/ambiguity. Duplicate anizone-v2 engine removed. Website episode snapshot identity and Japanese HLS audio verified; mixed masters use existing VUEO Japanese-only HLS filter. Returns first validated server. 22 controlled cases passed; real search/episode/HLS sampled, cold runtime network test hit timeouts. Native Android playback remains unverified. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
@@ -108,7 +108,7 @@
       "id": "animesalt",
       "name": "AnimeSalt",
       "description": "Anime \u00b7 Japanese Sub \u00b7 generic site episode ranges \u00b7 ARM/AniZip identity bridge \u00b7 Ravok + MegaPlay",
-      "version": "2.3.0",
+      "version": "2.3.1",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -132,7 +132,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Ravok Japanese HLS plus exact AnimeSalt MegaPlay Sub embeds. Local public-website AES-CBC decoding via existing CryptoJS support, validated HLS, website-published CDN failover, and English/Malay/Indonesian sidecars. Dub embeds excluded. Verified Black Clover/Bleach mapping retained. No app or metadata-network changes. Generic VUEO SRT patch remains applicable.",
+      "notes": "Ravok Japanese HLS plus exact AnimeSalt MegaPlay Sub embeds. Local public-website AES-CBC decoding via existing CryptoJS support, validated HLS, website-published CDN failover, and English/Malay/Indonesian sidecars. Dub embeds excluded. Verified Black Clover/Bleach mapping retained. No app or metadata-network changes. Generic VUEO SRT patch remains applicable. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
@@ -145,7 +145,7 @@
       "id": "animetsu",
       "name": "Animetsu",
       "description": "Anime \u00b7 Japanese Sub \u00b7 Animetsu.site \u00b7 Bee HLS + GG MP4",
-      "version": "2.1.3",
+      "version": "2.1.4",
       "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
@@ -164,7 +164,7 @@
         "ja"
       ],
       "runtimeTimeoutMs": 40000,
-      "notes": "Title-first search with cached IDs and mapping fallback. Japanese Sub only. Explicit resolutions below 720p excluded; Auto/Unknown retained. GG races deduplicated proxy/direct partial MP4 probes and returns only its first confirmed source. Bee remains eligible in the parallel server race. No signed media cache. A partial MP4 response confirms media availability, not full Android playback.",
+      "notes": "Title-first search with cached IDs and mapping fallback. Japanese Sub only. Explicit resolutions below 720p excluded; Auto/Unknown retained. GG races deduplicated proxy/direct partial MP4 probes and returns only its first confirmed source. Bee remains eligible in the parallel server race. No signed media cache. A partial MP4 response confirms media availability, not full Android playback. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "runtimeModules": [],
       "sourceWebsite": "https://animetsu.site/"
     },
@@ -172,7 +172,7 @@
       "id": "animeworld",
       "name": "AnimeWorld",
       "description": "Anime \u00b7 Japanese original audio only \u00b7 exact title/year and episode",
-      "version": "2.0.4",
+      "version": "2.0.5",
       "author": "piratezoro9",
       "supportedTypes": [
         "movie",
@@ -196,7 +196,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Exact primary catalogue title/year and published episode/canonical/parent-series checks. Japanese-only HLS playback with all video qualities retained; published subtitle sidecars forwarded. Version 2.0.4 starts the master HLS request as soon as the player API responds, alongside optional subtitle metadata. Verified series identity and compact season/episode routes are cached for up to five minutes; no signed stream URLs or player/subtitle configuration are cached. Cross-execution cache requires the VUEO provider metadata cache bridge app patch; older apps remain compatible. Cached episodes are revalidated and stale catalogue data is refreshed once. No title-based URL guesses, per-title IDs, TMDB season requests or extra discovery HTTP calls. Post-start playback failures require player diagnostics.",
+      "notes": "Exact primary catalogue title/year and published episode/canonical/parent-series checks. Japanese-only HLS playback with all video qualities retained; published subtitle sidecars forwarded. Version 2.0.4 starts the master HLS request as soon as the player API responds, alongside optional subtitle metadata. Verified series identity and compact season/episode routes are cached for up to five minutes; no signed stream URLs or player/subtitle configuration are cached. Cross-execution cache requires the VUEO provider metadata cache bridge app patch; older apps remain compatible. Cached episodes are revalidated and stale catalogue data is refreshed once. No title-based URL guesses, per-title IDs, TMDB season requests or extra discovery HTTP calls. Post-start playback failures require player diagnostics. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [],
@@ -206,7 +206,7 @@
       "id": "hianime",
       "name": "HiAnime",
       "description": "Anime \u00b7 Japanese/Sub only \u00b7 Verified MAL episode mapping \u00b7 Current MegaPlay encrypted extraction and website CDN failover",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -229,7 +229,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded.",
+      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
@@ -240,7 +240,7 @@
       "id": "kurage",
       "name": "Kurage",
       "description": "Anime \u00b7 Japanese Sub \u00b7 exact ID mapping \u00b7 one source request \u00b7 no duplicate engines",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "Paregi12",
       "supportedTypes": [
         "movie",
@@ -268,7 +268,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Single Kurage engine. ARM exact movie/season identity; AniZip exact episode bridge only when ambiguous. One episodes.source Sub request. available:false is terminal; no Dub, Cinemeta, GraphQL search, metadata date heuristics or duplicate fallback. 18s internal budget; mapping cache only, source URLs refreshed. Website proxy URL/query retained with owning-site playback headers. Android playback requires app testing.",
+      "notes": "Single Kurage engine. ARM exact movie/season identity; AniZip exact episode bridge only when ambiguous. One episodes.source Sub request. available:false is terminal; no Dub, Cinemeta, GraphQL search, metadata date heuristics or duplicate fallback. 18s internal budget; mapping cache only, source URLs refreshed. Website proxy URL/query retained with owning-site playback headers. Android playback requires app testing. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": []
@@ -277,7 +277,7 @@
       "id": "reanime",
       "name": "Reanime",
       "description": "Anime \u00b7 Japanese Sub \u00b7 HD-1 + HD-2 \u00b7 Provider-defined HLS instructions v1",
-      "version": "2.0.5",
+      "version": "2.0.6",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -299,7 +299,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Removes TMDB episode request incompatible with VUEO metadata broker. Ambiguous season mapping requires explicit ARM same-number TMDB/TVDB season link plus matching AniZip TMDB/TVDB/AniList identities and exact TVDB episode. No title hardcoding, dates, fuzzy match, first-result fallback or guessed absolute offsets. Unresolved/conflicting cases skip. Extraction unchanged.",
+      "notes": "Removes TMDB episode request incompatible with VUEO metadata broker. Ambiguous season mapping requires explicit ARM same-number TMDB/TVDB season link plus matching AniZip TMDB/TVDB/AniList identities and exact TVDB episode. No title hardcoding, dates, fuzzy match, first-result fallback or guessed absolute offsets. Unresolved/conflicting cases skip. Extraction unchanged. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
@@ -310,7 +310,7 @@
       "id": "vidnest-anime",
       "name": "VidNest",
       "description": "Anime \u00b7 Japanese Sub \u00b7 Aniwave \u00b7 HTTP only",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -325,7 +325,7 @@
       "contentLanguage": [
         "ja"
       ],
-      "notes": "Rebuilt for the current VidNest Aniwave Sub API. Exact ARM/AniZip title and episode mapping; no fuzzy search or guessed season offsets. Authenticated AES-GCM decoding inside the provider, no external decrypt service. Master HLS validation, English/Malay/Indo subtitle metadata, shared HTTP playback transport. No old backend, Dub/Hindi, HiAnime duplicate engine, WebView, child/segment/subtitle preflight. User confirmed playback on Android. v2.0.1 changes the file path to providers/vidnest.js; extraction unchanged. Stable provider ID retained for existing toggles.",
+      "notes": "Rebuilt for the current VidNest Aniwave Sub API. Exact ARM/AniZip title and episode mapping; no fuzzy search or guessed season offsets. Authenticated AES-GCM decoding inside the provider, no external decrypt service. Master HLS validation, English/Malay/Indo subtitle metadata, shared HTTP playback transport. No old backend, Dub/Hindi, HiAnime duplicate engine, WebView, child/segment/subtitle preflight. User confirmed playback on Android. v2.0.1 changes the file path to providers/vidnest.js; extraction unchanged. Stable provider ID retained for existing toggles. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
       "runtimeTimeoutMs": 20000,
       "sourceRepository": "https://github.com/yoruix/nuvio-providers",
       "sourceCommit": "ed38d1aee0024f56479369c9423fefb278e0b62a",
@@ -343,7 +343,7 @@
       "id": "animenosub",
       "name": "AnimeNoSub",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -363,13 +363,13 @@
         "cheerio-without-node-native",
         "crypto-js"
       ],
-      "notes": "Direct AnimeNoSub website provider with verified MAL/episode mapping. Nova, Vidmoly, Vtube, FileMoon (legacy packed JW and current Byse AES-GCM), StreamWish packed JW/links and MegaPlay AES-CBC enc plus CDN token supported. Resolves direct.php Sub wrappers. Explicit Dub labels/paths remain excluded; server names do not need a Sub keyword. Authenticated GCM decryption, bounded requests, independent host failures, master HLS priority, and English/Malay/Indo subtitle filtering. Current MegaPlay player constants verified on 2026-10-12; upstream key rotations may require updates. HLS content validation is not a full playback claim."
+      "notes": "Direct AnimeNoSub website provider with verified MAL/episode mapping. Nova, Vidmoly, Vtube, FileMoon (legacy packed JW and current Byse AES-GCM), StreamWish packed JW/links and MegaPlay AES-CBC enc plus CDN token supported. Resolves direct.php Sub wrappers. Explicit Dub labels/paths remain excluded; server names do not need a Sub keyword. Authenticated GCM decryption, bounded requests, independent host failures, master HLS priority, and English/Malay/Indo subtitle filtering. Current MegaPlay player constants verified on 2026-10-12; upstream key rotations may require updates. HLS content validation is not a full playback claim. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes."
     },
     {
       "id": "animedunya",
       "name": "AnimeDunya",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -386,13 +386,13 @@
       ],
       "runtimeTimeoutMs": 20000,
       "runtimeModules": [],
-      "notes": "Direct anime-dunya.com MAL/episode player extraction. Strict existing TMDB season mapping plus Japanese AniList identity. Reads Next.js Flight JSON without executing downloaded scripts, verifies player MAL/episode, validates HLS and available English/Malay/Indo WebVTT tracks. Master HLS priority. No account cookies or API proxy required for publicly returned sources. Live playback in VUEO remains unverified. v1.0.1: preserves published subtitle URLs without blocking VTT preflight; includes name/label and language/lang/srclang metadata. Player loads subtitles using the supplied CDN headers."
+      "notes": "Direct anime-dunya.com MAL/episode player extraction. Strict existing TMDB season mapping plus Japanese AniList identity. Reads Next.js Flight JSON without executing downloaded scripts, verifies player MAL/episode, validates HLS and available English/Malay/Indo WebVTT tracks. Master HLS priority. No account cookies or API proxy required for publicly returned sources. Live playback in VUEO remains unverified. v1.0.1: preserves published subtitle URLs without blocking VTT preflight; includes name/label and language/lang/srclang metadata. Player loads subtitles using the supplied CDN headers. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes."
     },
     {
       "id": "animeonsen",
       "name": "AnimeOnsen",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 DASH + English, Malay and Indo subtitles",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -409,13 +409,13 @@
       ],
       "runtimeTimeoutMs": 30000,
       "runtimeModules": [],
-      "notes": "Direct www.animeonsen.xyz anonymous-session API adapter. Strict date-based TMDB-to-MAL episode mapping, Japanese AniList identity, exact upstream metadata MAL match, verified episode key and MPD; rejects foreign labelled audio and DRM. Preserves published subtitle URLs and per-track Authorization headers. No fuzzy identity fallback, no dub requests. Live homepage returned Cloudflare 403 in build environment; end-to-end live playback remains unverified. Session bootstrap fields and endpoint schema adapted from Anivexa-API reference fetched 2026-10-12. v1.0.1: declares ASS MIME text/x-ssa for native extensionless subtitle endpoints, preserving WebVTT/SubRip/TTML for explicitly suffixed URLs. Fixes missing format metadata which made the player default to SubRip. Runtime logs subtitle format without URLs/tokens. Live on-device rendering remains to be verified."
+      "notes": "Direct www.animeonsen.xyz anonymous-session API adapter. Strict date-based TMDB-to-MAL episode mapping, Japanese AniList identity, exact upstream metadata MAL match, verified episode key and MPD; rejects foreign labelled audio and DRM. Preserves published subtitle URLs and per-track Authorization headers. No fuzzy identity fallback, no dub requests. Live homepage returned Cloudflare 403 in build environment; end-to-end live playback remains unverified. Session bootstrap fields and endpoint schema adapted from Anivexa-API reference fetched 2026-10-12. v1.0.1: declares ASS MIME text/x-ssa for native extensionless subtitle endpoints, preserving WebVTT/SubRip/TTML for explicitly suffixed URLs. Fixes missing format metadata which made the player default to SubRip. Runtime logs subtitle format without URLs/tokens. Live on-device rendering remains to be verified. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes."
     },
     {
       "id": "animegg",
       "name": "AnimeGG",
       "description": "Anime \u00b7 Sub only \u00b7 Direct MP4/HLS \u00b7 Japanese audio",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -433,13 +433,13 @@
       ],
       "runtimeTimeoutMs": 25000,
       "runtimeModules": [],
-      "notes": "Direct www.animegg.org website extractor. Existing verified TMDB-to-MAL episode mapping; conservative exact mapped title/Anime-Planet slug match, site heading and explicit Sub episode/server tabs. No speculative sequel offsets or fuzzy franchise fallback. Parses data literals without eval. Extracts published MP4 URLs without blocking HEAD probes; HLS master priority per embed. English/Malay/Indo sidecars only if returned by player. A sampled Sub episode publishes MP4 sources without external subtitle tracks; hardsub language/audio have not been independently verified. Live in-app playback remains to be tested. v1.0.1: accepts show-wide ARM mappings; verifies absolute numbering against independent TVDB episode identity and broadcast date, preserves relative season date mapping. Logs absent Sub episodes. No guessed offsets."
+      "notes": "Direct www.animegg.org website extractor. Existing verified TMDB-to-MAL episode mapping; conservative exact mapped title/Anime-Planet slug match, site heading and explicit Sub episode/server tabs. No speculative sequel offsets or fuzzy franchise fallback. Parses data literals without eval. Extracts published MP4 URLs without blocking HEAD probes; HLS master priority per embed. English/Malay/Indo sidecars only if returned by player. A sampled Sub episode publishes MP4 sources without external subtitle tracks; hardsub language/audio have not been independently verified. Live in-app playback remains to be tested. v1.0.1: accepts show-wide ARM mappings; verifies absolute numbering against independent TVDB episode identity and broadcast date, preserves relative season date mapping. Logs absent Sub episodes. No guessed offsets. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes."
     },
     {
       "id": "anipm",
       "name": "Ani.pm",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 Softsub/Hardsub HLS",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -457,7 +457,7 @@
       ],
       "runtimeTimeoutMs": 30000,
       "runtimeModules": [],
-      "notes": "Standalone ani.pm API/Settlar extractor. Verified TMDB/IMDb-to-MAL mapping including independently corroborated absolute episodes. Requires exact MAL/AniList search and bootstrap identities, exact episode and effective Sub language/package. Requests only published sub/subhard channels, requires Japanese session audio and rejects foreign/mixed/unverified HLS audio groups. Validates HLS and gives first master priority per channel. External English/Malay/Indo subtitles require recognized actual VTT/ASS/SRT cues with explicit MIME and headers. Live One Piece E1156 soft/hard masters and English VTT retrieved and replay tested; actual in-app video playback remains to be verified. No proxy backend, cookies, runtime imports or dub requests. v1.0.1: builds session query explicitly because VUEO URL.searchParams mutations do not update href; fixes HTTP 400 from missing session parameters. v1.0.2: forwards Settlar session keyProof in X-Settlar-Key-Proof playback headers, as required by the site player for protected HLS keys. Adds one child-playlist preflight per master/channel with safe encryption/proof diagnostics. Device HTTP403 resolution remains unverified. v1.0.3: removes the additional child-playlist preflight introduced in v1.0.2. Retains original master priority and session headers. This is a scan-overhead rollback, not a confirmed HTTP403 playback fix."
+      "notes": "Standalone ani.pm API/Settlar extractor. Verified TMDB/IMDb-to-MAL mapping including independently corroborated absolute episodes. Requires exact MAL/AniList search and bootstrap identities, exact episode and effective Sub language/package. Requests only published sub/subhard channels, requires Japanese session audio and rejects foreign/mixed/unverified HLS audio groups. Validates HLS and gives first master priority per channel. External English/Malay/Indo subtitles require recognized actual VTT/ASS/SRT cues with explicit MIME and headers. Live One Piece E1156 soft/hard masters and English VTT retrieved and replay tested; actual in-app video playback remains to be verified. No proxy backend, cookies, runtime imports or dub requests. v1.0.1: builds session query explicitly because VUEO URL.searchParams mutations do not update href; fixes HTTP 400 from missing session parameters. v1.0.2: forwards Settlar session keyProof in X-Settlar-Key-Proof playback headers, as required by the site player for protected HLS keys. Adds one child-playlist preflight per master/channel with safe encryption/proof diagnostics. Device HTTP403 resolution remains unverified. v1.0.3: removes the additional child-playlist preflight introduced in v1.0.2. Retains original master priority and session headers. This is a scan-overhead rollback, not a confirmed HTTP403 playback fix. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes."
     }
   ]
 }
