@@ -1,0 +1,168 @@
+{
+  "description": "Captured by executing the unmodified pre-title-fallback mapping code against the same fixed input fixtures; SHA256 of four unchanged providers.",
+  "providers": {
+    "allanime": {
+      "value": {
+        "id": 61603,
+        "ep": 2,
+        "method": "exact season ID"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437"
+      ]
+    },
+    "animekai": {
+      "value": {
+        "id": 61603,
+        "ep": 2,
+        "method": "exact season ID",
+        "slugHint": "aoashi-season-2"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437"
+      ]
+    },
+    "hianime": {
+      "value": {
+        "id": 61603,
+        "ep": 2,
+        "method": "exact season ID"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437"
+      ]
+    },
+    "kurage": {
+      "value": {
+        "id": 191788,
+        "episode": 2,
+        "method": "ARM exact season ID"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437"
+      ]
+    },
+    "reanime": {
+      "value": {
+        "id": 191788,
+        "ep": 2,
+        "method": "exact season ID"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437"
+      ]
+    },
+    "vidnest": {
+      "value": {
+        "id": 191788,
+        "ep": 2,
+        "method": "exact season ID"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437"
+      ]
+    },
+    "animedunya": {
+      "value": {
+        "mal_id": 61603,
+        "anilist": 191788,
+        "mal_episode": 2,
+        "episode": 2,
+        "anime_title": "Aoashi Season 2",
+        "titles": [
+          "Aoashi Season 2"
+        ],
+        "air_date": "2020-01-02"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437",
+        "https://v3-cinemeta.strem.io/meta/series/tt15792808.json",
+        "https://api.ani.zip/mappings?mal_id=61603"
+      ]
+    },
+    "animegg": {
+      "value": {
+        "mal_id": 61603,
+        "anilist": 191788,
+        "mal_episode": 2,
+        "episode": 2,
+        "anime_title": "Aoashi Season 2",
+        "titles": [
+          "Aoashi Season 2"
+        ],
+        "expectedEpisodes": 24,
+        "animeplanet_slug": "aoashi-season-2",
+        "air_date": "2020-01-02",
+        "mapping_method": "air-date"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437",
+        "https://v3-cinemeta.strem.io/meta/series/tt15792808.json",
+        "https://api.ani.zip/mappings?mal_id=61603"
+      ]
+    },
+    "animenosub": {
+      "value": {
+        "mal_id": 61603,
+        "anilist": 191788,
+        "mal_episode": 2,
+        "episode": 2,
+        "anime_title": "Aoashi Season 2",
+        "titles": [
+          "Aoashi Season 2"
+        ],
+        "air_date": "2020-01-02"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437",
+        "https://v3-cinemeta.strem.io/meta/series/tt15792808.json",
+        "https://api.ani.zip/mappings?mal_id=61603"
+      ]
+    },
+    "animeonsen": {
+      "value": {
+        "mal_id": 61603,
+        "anilist": 191788,
+        "mal_episode": 2,
+        "episode": 2,
+        "anime_title": "Aoashi Season 2",
+        "titles": [
+          "Aoashi Season 2"
+        ],
+        "air_date": "2020-01-02"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437",
+        "https://v3-cinemeta.strem.io/meta/series/tt15792808.json",
+        "https://api.ani.zip/mappings?mal_id=61603"
+      ]
+    },
+    "anipm": {
+      "value": {
+        "mal_id": 61603,
+        "anilist": 191788,
+        "mal_episode": 2,
+        "episode": 2,
+        "anime_title": "Aoashi Season 2",
+        "titles": [
+          "Aoashi Season 2"
+        ],
+        "expectedEpisodes": 24,
+        "animeplanet_slug": "aoashi-season-2",
+        "air_date": "2020-01-02",
+        "mapping_method": "air-date"
+      },
+      "calls": [
+        "https://arm.haglund.dev/api/v2/themoviedb?id=126437",
+        "https://v3-cinemeta.strem.io/meta/series/tt15792808.json",
+        "https://api.ani.zip/mappings?mal_id=61603"
+      ]
+    }
+  },
+  "unchanged": {
+    "animetsu": "e75f6896443bea7e47ac4ec1b20a15cefe09bd0e85faa3f124ae18766d9c6875",
+    "anizone": "2cafba9fa87e8e4d4ca05edd9be372eeadb804748b20f76eab831c7f5d7da8e3",
+    "animesalt": "08c4f54b309ba05ed71c29e86010ca93193148c8c21897a8b04de4b930d2e2d2",
+    "animeworld": "7a045dbcc417314d2e6a1e24b0eecac9d94a75dae9f36e66177f88fa8c770f92"
+  }
+}
