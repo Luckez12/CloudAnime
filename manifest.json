@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.38",
+  "version": "1.8.39",
   "scrapers": [
     {
       "id": "allanime",
@@ -41,8 +41,8 @@
     {
       "id": "animekai",
       "name": "AnimeKai",
-      "description": "Anime \u00b7 Japanese Sub \u00b7 AnimeKai.li / MegaVid \u00b7 HTTP only",
-      "version": "2.0.2",
+      "description": "Anime \u00b7 Japanese Sub \u00b7 website published episode + exact MAL server route",
+      "version": "2.0.3",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -64,7 +64,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Uses the website-published noax=1 source fallback to avoid the Animex relay. User logs and live replay confirmed HTTP403 on later video segments for MAL54492/42249 while root/early video loaded; refresh=1 did not fix the sampled failures. Fallback segments at corresponding playback positions returned HTTP206 MPEG-TS. Discovery remains exact ARM/AniZip mapping plus source JSON and master HLS; no extra segment/subtitle probes or app-specific logic. Three HTTP calls for a unique season. Android confirmation remains pending for this fallback fix. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes.",
+      "notes": "Website episode must be published with Sub and match the requested local episode; accepts only page-listed MegaVid routes with exact MAL/episode. Redirects to another episode and uncertain server labels rejected. No air-date checks; one extra website request on the direct ARM slug-hint path. Unknown catalogue hints fail closed.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [],

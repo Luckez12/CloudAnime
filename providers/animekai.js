@@ -1,7 +1,8 @@
-/* CloudAnime AnimeKai v2.0.1 — animekai.li published MegaVid MAL route, Sub only. */
+/* CloudAnime AnimeKai v2.0.3 — animekai.li published MegaVid MAL route, Sub only. */
 (function () {
   "use strict";
   var SITE = "https://megavid.buzz";
+  var CATALOGUE = "https://animekai.li";
   var UA =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
   var documents = Object.create(null),
@@ -147,6 +148,7 @@
               id: Number(movies[0].myanimelist),
               ep: 1,
               method: "exact movie ID",
+              slugHint: movies[0]["anime-planet"],
             }
           : null;
       }
@@ -161,6 +163,7 @@
           id: Number(exact[0].myanimelist),
           ep: episode,
           method: "exact season ID",
+          slugHint: exact[0]["anime-planet"],
         };
       var candidates = exact.filter(function (r) {
         return (
@@ -227,6 +230,7 @@
             id: Number(r.myanimelist),
             ep: Number(e.episode),
             method: "ARM linked season + AniZip exact episode",
+            slugHint: r["anime-planet"],
           });
         });
       });
@@ -262,11 +266,54 @@
         throw Error("Mixed or unverified HLS audio");
       return { url: url, master: master };
     }
+    function attributes(tag) {
+      var out = Object.create(null), match;
+      var re = /([\w-]+)\s*=\s*(["'])(.*?)\2/g;
+      while ((match = re.exec(tag))) out[match[1].toLowerCase()] = match[3]
+        .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      return out;
+    }
+    async function episodeServer(mapped) {
+      // ARM slug is only a catalogue lookup hint, never identity proof.
+      // The episode snapshot must publish the requested episode and bind its
+      // player URL to the exact mapped MAL ID, local episode and Sub route.
+      var hint = typeof mapped.slugHint === "string" ? mapped.slugHint : "";
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(hint))
+        throw Error("No catalogue slug hint; cannot verify website episode");
+      var page = CATALOGUE + "/watch/" + hint +
+        (mapped.ep === 1 ? "" : "/ep-" + mapped.ep);
+      var html = await text(page, { Referer: CATALOGUE + "/" });
+      var tags = html.match(/<[a-z][^>]*>/gi) || [];
+      var watch = null, published = false, players = [];
+      tags.forEach(function(tag) {
+        var attrs = attributes(tag);
+        if (attrs.id === "watch-page") watch = attrs;
+        if (Number(attrs["data-number"]) === mapped.ep &&
+            attrs["data-published"] === "1" && attrs["data-has-sub"] === "1") published = true;
+        if (attrs["data-server-url"] && attrs["data-lang"] === "sub") players.push(attrs);
+      });
+      if (!watch || watch["data-anime"] !== hint ||
+          Number(watch["data-episode"]) !== mapped.ep || !published)
+        throw Error("Requested episode not published or website selected another episode");
+      var selected = null;
+      players.some(function(attrs) {
+        if (/no[- ]?sub|dub\?/i.test(attrs["data-label"] || "")) return false;
+        var href = address(attrs["data-server-url"], page);
+        if (!href) return false;
+        var u = new URL(href);
+        if (u.origin !== SITE) return false;
+        var route = /^\/(?:aniwave\/)?mal\/(\d+)\/(\d+)\/sub\/?$/.exec(u.pathname);
+        if (!route || Number(route[1]) !== mapped.id || Number(route[2]) !== mapped.ep) return false;
+        u.search = ""; u.hash = "";
+        selected = u.href.replace(/\/$/, "");
+        return true;
+      });
+      if (!selected) throw Error("No supported Sub server bound to the requested MAL/episode");
+      log("EPISODE", "Website published exact MAL " + mapped.id + " episode " + mapped.ep + "; server route matched");
+      return selected;
+    }
     async function extract(mapped) {
-      // Source API published by animekai.li's MegaVid player. Exact MAL routing
-      // avoids loading the player HTML or performing any title search.
-      var path = "/mal/" + mapped.id + "/" + mapped.ep + "/sub";
-      var page = SITE + path;
+      var page = await episodeServer(mapped);
       var api = page + "/source?noax=1";
       var headers = { "User-Agent": UA, Referer: page, Origin: SITE };
       var data = await json(
@@ -329,7 +376,7 @@
       });
       log(
         "EXTRACT",
-        "Website fallback master HLS verified; MAL/Sub route; " +
+        "Website episode/server matched; master HLS verified; " +
           subtitles.length +
           " subtitle tracks supplied",
       );
