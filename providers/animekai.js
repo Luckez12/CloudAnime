@@ -1,4 +1,4 @@
-/* CloudAnime AnimeKai v2.0.3 — animekai.li published MegaVid MAL route, Sub only. */
+/* CloudAnime AnimeKai v2.0.4 — animekai.li published MegaVid MAL route, Sub only. */
 (function () {
   "use strict";
   var SITE = "https://megavid.buzz";
@@ -56,13 +56,21 @@
       return [];
     var deadline = Date.now() + 24000,
       calls = 0;
-    async function text(url, extra) {
+    function scope() {
+      return { stopped: false, pending: new Set(), cancel: function() {
+        this.stopped = true;
+        this.pending.forEach(function(cancel) { cancel(); });
+        this.pending.clear();
+      }};
+    }
+    async function text(url, extra, task) {
+      if (task && task.stopped) throw Error("Race request cancelled");
       var left = Math.min(
         url.indexOf(SITE + "/mal/") === 0 ? 10000 : 9000,
         deadline - Date.now(),
       );
       if (left <= 0) throw Error("Request budget exhausted");
-      var timer,
+      var timer, cancel,
         controller =
           typeof AbortController === "function" ? new AbortController() : null;
       var opts = {
@@ -90,6 +98,11 @@
               return body;
             }),
           new Promise(function (_, reject) {
+            cancel = function() {
+              if (controller) controller.abort();
+              reject(Error("Race request cancelled"));
+            };
+            if (task) task.pending.add(cancel);
             timer = setTimeout(function () {
               if (controller) controller.abort();
               reject(Error("HTTP timeout at " + new URL(url).hostname));
@@ -98,10 +111,17 @@
         ]);
       } finally {
         clearTimeout(timer);
+        if (task && cancel) task.pending.delete(cancel);
       }
     }
-    async function json(url, headers) {
-      return JSON.parse(await text(url, headers));
+    async function json(url, headers, task) {
+      var body = (await text(url, headers, task)).replace(/^\uFEFF/, "").trim();
+      if (body.charAt(0) === "<") {
+        log("RESPONSE", new URL(url).hostname + new URL(url).pathname + ": HTML received where JSON expected");
+        throw Error("HTML response instead of source JSON");
+      }
+      try { return JSON.parse(body); }
+      catch (_) { throw Error("Invalid JSON at " + new URL(url).hostname + new URL(url).pathname); }
     }
     async function metadata(url) {
       var hit = documents[url];
@@ -236,8 +256,8 @@
       });
       return matches.length === 1 ? matches[0] : null;
     }
-    async function verify(url, headers) {
-      var body = (await text(url, headers)).replace(/^\uFEFF/, "").trim();
+    async function verify(url, headers, task) {
+      var body = (await text(url, headers, task)).replace(/^\uFEFF/, "").trim();
       if (!body.startsWith("#EXTM3U"))
         throw Error("Source response is not HLS");
       var master = /#EXT-X-STREAM-INF:/.test(body);
@@ -295,31 +315,91 @@
       if (!watch || watch["data-anime"] !== hint ||
           Number(watch["data-episode"]) !== mapped.ep || !published)
         throw Error("Requested episode not published or website selected another episode");
-      var selected = null;
-      players.some(function(attrs) {
-        if (/no[- ]?sub|dub\?/i.test(attrs["data-label"] || "")) return false;
+      var selected = [], seen = Object.create(null);
+      players.forEach(function(attrs) {
+        if (/no[- ]?sub|dub\?/i.test(attrs["data-label"] || "")) return;
         var href = address(attrs["data-server-url"], page);
-        if (!href) return false;
-        var u = new URL(href);
-        if (u.origin !== SITE) return false;
-        var route = /^\/(?:aniwave\/)?mal\/(\d+)\/(\d+)\/sub\/?$/.exec(u.pathname);
-        if (!route || Number(route[1]) !== mapped.id || Number(route[2]) !== mapped.ep) return false;
-        u.search = ""; u.hash = "";
-        selected = u.href.replace(/\/$/, "");
-        return true;
+        if (!href) return;
+        var u = new URL(href), kind, route;
+        // Server 3 (/aniwave/) is excluded even when its route claims the right identity.
+        if (u.origin === SITE) {
+          kind = "MegaVid";
+          route = /^\/mal\/(\d+)\/(\d+)\/sub\/?$/.exec(u.pathname);
+        } else if (u.origin === "https://megaplay.buzz") {
+          kind = "MegaPlay";
+          route = /^\/stream\/mal\/(\d+)\/(\d+)\/sub\/?$/.exec(u.pathname);
+        }
+        if (!route || Number(route[1]) !== mapped.id || Number(route[2]) !== mapped.ep || seen[kind]) return;
+        u.search = ""; u.hash = ""; seen[kind] = true;
+        selected.push({url: u.href.replace(/\/$/, ""), kind: kind, origin: u.origin});
       });
-      if (!selected) throw Error("No supported Sub server bound to the requested MAL/episode");
-      log("EPISODE", "Website published exact MAL " + mapped.id + " episode " + mapped.ep + "; server route matched");
+      if (!selected.length) throw Error("No supported Sub server bound to the requested MAL/episode");
+      log("EPISODE", "Website published exact MAL " + mapped.id + " episode " + mapped.ep + "; " + selected.length + " eligible servers; Server 3 excluded");
       return selected;
     }
-    async function extract(mapped) {
-      var page = await episodeServer(mapped);
+    function decryptMega(data) {
+      if (!data || typeof data !== "object") throw Error("Invalid MegaPlay payload");
+      if (typeof data.enc !== "string") return data;
+      if (data.enc.length > 1000000 || !/^[A-Za-z0-9_+/=-]+$/.test(data.enc)) throw Error("Invalid source ciphertext");
+      var C = require("crypto-js");
+      var key = C.enc.Hex.parse(C.enc.Utf8.parse("i?LMTAx0Q6,:}50U").toString(C.enc.Hex).padEnd(64, "0"));
+      var plain = C.AES.decrypt({ciphertext:C.enc.Base64.parse(data.enc.replace(/-/g,"+").replace(/_/g,"/"))}, key,
+        {iv:C.enc.Utf8.parse("W0;27ToaUpl_P%'c"), mode:C.mode.CBC, padding:C.pad.Pkcs7}).toString(C.enc.Utf8);
+      var decoded = JSON.parse(plain);
+      if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) throw Error("Invalid decoded source");
+      return Object.assign({}, data, decoded);
+    }
+    function validateIdentity(data, mapped) {
+      // Reject conflicting identities if an upstream starts supplying them.
+      var identity = data.metadata || data;
+      if (
+        (identity.mal_id != null && Number(identity.mal_id) !== mapped.id) ||
+        (identity.malId != null && Number(identity.malId) !== mapped.id) ||
+        (identity.episode != null && Number(identity.episode) !== mapped.ep) ||
+        (identity.subOrDub &&
+          String(identity.subOrDub).toLowerCase() !== "sub") ||
+        (identity.audioLanguage &&
+          !/^(?:ja|jpn|japanese)$/i.test(identity.audioLanguage))
+      )
+        throw Error("Conflicting source identity/audio");
+    }
+    async function extractCandidate(mapped, server, task) {
+      var page = server.url;
+      var headers = { "User-Agent": UA, Referer: page, Origin: server.origin };
+      var data;
+      if (server.kind === "MegaPlay") {
+        var html = await text(page, {Referer: CATALOGUE + "/"}, task);
+        if (!/\btype\s*:\s*["']sub["']/.test(html)) throw Error("MegaPlay did not confirm Sub channel");
+        var player = (html.match(/<[a-z][^>]*>/gi) || []).map(attributes).find(function(t) { return t.id === "megaplay-player"; });
+        var playerId = player && player["data-id"];
+        if (!/^\d{1,12}$/.test(playerId || "") || !positive(playerId)) throw Error("MegaPlay episode player unavailable");
+        data = decryptMega(await json(server.origin + "/stream/getSources?id=" + playerId + "&id=" + playerId,
+          Object.assign({}, headers, {"X-Requested-With":"XMLHttpRequest", Accept:"application/json"}), task));
+        validateIdentity(data, mapped);
+        var raw = [];
+        if (typeof data.file === "string") raw.push(data.file);
+        if (data.sources) raw = raw.concat(Array.isArray(data.sources) ? data.sources : [data.sources]);
+        var selected = null;
+        for (var i = 0; i < Math.min(raw.length, 3); i++) {
+          var u = address(typeof raw[i] === "string" ? raw[i] : raw[i] && (raw[i].file || raw[i].url), page);
+          if (!u) continue;
+          try { selected = await verify(u, headers, task); break; }
+          catch (error) { if (task.stopped) throw error; log("SOURCE", "MegaPlay: " + error.message); }
+        }
+        if (!selected) throw Error("MegaPlay has no verified HLS source");
+        return result(mapped, server, selected, data, headers);
+      }
       var api = page + "/source?noax=1";
-      var headers = { "User-Agent": UA, Referer: page, Origin: SITE };
-      var data = await json(
-        api,
-        Object.assign({}, headers, { Accept: "application/json" }),
-      );
+      log("SOURCE", "MegaVid API " + new URL(api).pathname + "?noax=1");
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          data = await json(api, Object.assign({}, headers, {Accept:"application/json"}), task);
+          break;
+        } catch (error) {
+          if (task.stopped || attempt || !/HTML response|HTTP 5\d\d|HTTP timeout/.test(error.message)) throw error;
+          log("RETRY", "MegaVid temporary response; one retry");
+        }
+      }
       if (!data || data.status !== "ok")
         throw Error(
           "Source unavailable: " + String((data && data.status) || "unknown"),
@@ -337,21 +417,14 @@
         )
       )
         throw Error("Source is not HLS");
-      // Reject conflicting identities if an upstream starts supplying them.
-      var identity = data.metadata || data;
-      if (
-        (identity.mal_id != null && Number(identity.mal_id) !== mapped.id) ||
-        (identity.malId != null && Number(identity.malId) !== mapped.id) ||
-        (identity.episode != null && Number(identity.episode) !== mapped.ep) ||
-        (identity.subOrDub &&
-          String(identity.subOrDub).toLowerCase() !== "sub") ||
-        (identity.audioLanguage &&
-          !/^(?:ja|jpn|japanese)$/i.test(identity.audioLanguage))
-      )
-        throw Error("Conflicting source identity/audio");
+      validateIdentity(data, mapped);
       var url = address(data.source);
       if (!url) throw Error("No HTTPS source");
-      var selected = await verify(url, headers);
+      var selected = await verify(url, headers, task);
+      return result(mapped, server, selected, data, headers);
+    }
+    function result(mapped, server, selected, data, headers) {
+      var page = server.url;
       var tracks = Array.isArray(data.tracks) ? data.tracks : [],
         seen = Object.create(null),
         subtitles = [];
@@ -376,7 +449,7 @@
       });
       log(
         "EXTRACT",
-        "Website episode/server matched; master HLS verified; " +
+        server.kind + "; website episode/server matched; master HLS verified; " +
           subtitles.length +
           " subtitle tracks supplied",
       );
@@ -384,7 +457,7 @@
         {
           name: "AnimeKai",
           provider: "animekai",
-          serverName: "MegaVid",
+          serverName: server.kind,
           title:
             "MAL " + mapped.id + " • Episode " + mapped.ep + " • Japanese Sub",
           url: selected.url,
@@ -399,6 +472,26 @@
           subtitles: subtitles.slice(0, 16),
         },
       ];
+    }
+    async function extract(mapped) {
+      var servers = await episodeServer(mapped);
+      var jobs = servers.map(function(server) { return {server:server, task:scope()}; });
+      return new Promise(function(resolve) {
+        var remaining = jobs.length, finished = false;
+        jobs.forEach(function(job) {
+          extractCandidate(mapped, job.server, job.task).then(function(streams) {
+            if (finished) return;
+            finished = true;
+            jobs.forEach(function(other) { if (other !== job) other.task.cancel(); });
+            log("RACE", job.server.kind + " won with verified HLS; other requests cancelled");
+            resolve(streams);
+          }).catch(function(error) {
+            if (finished) return;
+            log("SERVER", job.server.kind + ": " + error.message);
+            if (--remaining === 0) { finished = true; jobs.forEach(function(j) {j.task.cancel();}); resolve([]); }
+          });
+        });
+      });
     }
     var streams = [];
     try {

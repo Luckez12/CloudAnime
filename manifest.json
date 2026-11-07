@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.8.39",
+  "version": "1.8.40",
   "scrapers": [
     {
       "id": "allanime",
@@ -41,8 +41,8 @@
     {
       "id": "animekai",
       "name": "AnimeKai",
-      "description": "Anime \u00b7 Japanese Sub \u00b7 website published episode + exact MAL server route",
-      "version": "2.0.3",
+      "description": "Anime \u00b7 Japanese Sub \u00b7 verified website episode \u00b7 MegaPlay/MegaVid race",
+      "version": "2.0.4",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -64,10 +64,12 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Website episode must be published with Sub and match the requested local episode; accepts only page-listed MegaVid routes with exact MAL/episode. Redirects to another episode and uncertain server labels rejected. No air-date checks; one extra website request on the direct ARM slug-hint path. Unknown catalogue hints fail closed.",
+      "notes": "Website published episode and exact MAL/episode server routes required. Races page-listed MegaPlay and direct MegaVid; first verified master HLS wins, losing requests cancelled. Aniwave Server 3 excluded. MegaVid retries HTML/5xx/timeout once within the shared deadline. No air-date checks. ARM slug hint required.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
-      "runtimeModules": [],
+      "runtimeModules": [
+        "crypto-js"
+      ],
       "sourceWebsite": "https://animekai.li/"
     },
     {
