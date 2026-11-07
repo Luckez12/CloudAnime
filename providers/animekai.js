@@ -1,4 +1,4 @@
-/* CloudAnime AnimeKai v2.0.4 — animekai.li published MegaVid MAL route, Sub only. */
+/* CloudAnime AnimeKai v2.0.5 — animekai.li published MegaVid MAL route, Sub only. */
 (function () {
   "use strict";
   var SITE = "https://megavid.buzz";
@@ -63,11 +63,12 @@
         this.pending.clear();
       }};
     }
-    async function text(url, extra, task) {
+    async function text(url, extra, task, maxMs) {
       if (task && task.stopped) throw Error("Race request cancelled");
       var left = Math.min(
         url.indexOf(SITE + "/mal/") === 0 ? 10000 : 9000,
         deadline - Date.now(),
+        maxMs || 9000,
       );
       if (left <= 0) throw Error("Request budget exhausted");
       var timer, cancel,
@@ -256,8 +257,8 @@
       });
       return matches.length === 1 ? matches[0] : null;
     }
-    async function verify(url, headers, task) {
-      var body = (await text(url, headers, task)).replace(/^\uFEFF/, "").trim();
+    async function verify(url, headers, task, maxMs) {
+      var body = (await text(url, headers, task, maxMs)).replace(/^\uFEFF/, "").trim();
       if (!body.startsWith("#EXTM3U"))
         throw Error("Source response is not HLS");
       var master = /#EXT-X-STREAM-INF:/.test(body);
@@ -376,21 +377,41 @@
         data = decryptMega(await json(server.origin + "/stream/getSources?id=" + playerId + "&id=" + playerId,
           Object.assign({}, headers, {"X-Requested-With":"XMLHttpRequest", Accept:"application/json"}), task));
         validateIdentity(data, mapped);
+        headers = {"User-Agent":UA, Referer:server.origin + "/", Origin:server.origin};
         var raw = [];
         if (typeof data.file === "string") raw.push(data.file);
         if (data.sources) raw = raw.concat(Array.isArray(data.sources) ? data.sources : [data.sources]);
-        var selected = null;
+        var selected = null, healthTried = false;
         for (var i = 0; i < Math.min(raw.length, 3); i++) {
           var u = address(typeof raw[i] === "string" ? raw[i] : raw[i] && (raw[i].file || raw[i].url), page);
           if (!u) continue;
-          try { selected = await verify(u, headers, task); break; }
-          catch (error) { if (task.stopped) throw error; log("SOURCE", "MegaPlay: " + error.message); }
+          try { selected = await verify(u, headers, task, Math.min(4000, Math.max(750, deadline - Date.now() - 4500))); break; }
+          catch (error) {
+            if (task.stopped) throw error;
+            log("SOURCE", "MegaPlay: " + error.message);
+            if (!healthTried) {
+              healthTried = true;
+              try {
+                var health = await json(server.origin + "/lib/check_domain.json?cache_burst=" + Date.now(), {Referer:page, Accept:"application/json"}, task);
+                var host = typeof health.fallback === "string" ? health.fallback.trim().toLowerCase() : "";
+                var original = new URL(u);
+                if (/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(host) && host !== original.hostname) {
+                  selected = await verify("https://" + host + original.pathname + original.search, headers, task);
+                  log("CDN", "MegaPlay website-declared fallback HLS verified");
+                  break;
+                }
+              } catch (fallbackError) {
+                if (task.stopped) throw fallbackError;
+                log("CDN", "MegaPlay fallback: " + fallbackError.message);
+              }
+            }
+          }
         }
         if (!selected) throw Error("MegaPlay has no verified HLS source");
         return result(mapped, server, selected, data, headers);
       }
       var api = page + "/source?noax=1";
-      log("SOURCE", "MegaVid API " + new URL(api).pathname + "?noax=1");
+      log("SOURCE", "MegaVid API " + new URL(api).pathname + "?noax=1; endpointSuffixValid=" + /\/source$/.test(new URL(api).pathname));
       for (var attempt = 0; attempt < 2; attempt++) {
         try {
           data = await json(api, Object.assign({}, headers, {Accept:"application/json"}), task);
