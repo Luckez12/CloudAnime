@@ -498,12 +498,14 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
         (!Number.isInteger(season) || season < 0 || !positive(episode)))
     )
       return [];
+    var pending = new Set(), finished = false;
     var calls = 0,
       deadline = Date.now() + 42000;
     async function text(url, extra, body) {
+      if (finished) throw Error("Provider discovery finished");
       var left = Math.min(8500, deadline - Date.now());
       if (left <= 0) throw Error("Request budget exhausted");
-      var timer,
+      var timer, cancel,
         control =
           typeof AbortController === "function" ? new AbortController() : null;
       calls++;
@@ -530,7 +532,9 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
             return b;
           }),
           new Promise(function (_, reject) {
-            timer = setTimeout(function () {
+            cancel = function() { if(control)control.abort(); reject(Error("Provider discovery cancelled")); };
+              pending.add(cancel);
+              timer = setTimeout(function () {
               if (control) control.abort();
               reject(Error("HTTP timeout at " + new URL(url).hostname));
             }, left);
@@ -538,6 +542,7 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
         ]);
       } finally {
         clearTimeout(timer);
+        if(cancel)pending.delete(cancel);
       }
     }
     async function json(url, headers, body) {
@@ -1068,7 +1073,8 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
       var results = await Promise.all([
           (async function() {
         var value = await cloudAnimeRecoverMapping(function() { return mapping(); }, id, type, season, episode, deadline);
-        if (!value || !value.title_fallback) return value;
+        if (!value) throw Error("No unambiguous title/episode mapping");
+        if (!value.title_fallback) return value;
         return {id:value.mal_id, ep:value.episode, method:value.mapping_method,
           titleFallback:value, slugHint:value.animeplanet_slug};
       })(),
@@ -1164,6 +1170,10 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
       });
     } catch (e) {
       console.error("[AllAnime] " + e.message);
+    } finally {
+      finished = true;
+      pending.forEach(function(cancel) { cancel(); });
+      pending.clear();
     }
     log("RESULT", streams.length + " sources, " + calls + " HTTP calls");
     return streams;

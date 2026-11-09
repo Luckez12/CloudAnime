@@ -1,12 +1,12 @@
 {
   "name": "CloudAnime",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "scrapers": [
     {
       "id": "allanime",
       "name": "AllAnime",
       "description": "Anime \u00b7 Japanese Sub \u00b7 exact AniList/MAL identity \u00b7 current website crypto",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -30,7 +30,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Current public website build/bootstrap proof; exact season and episode mapping; verified native HLS/MP4 only. No VUEO site-specific code. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes. CloudAnime 1.9.0: identity-mapping failure only triggers bounded exact-title/season fallback using matching VUEO metadata and AniList (Jikan on catalogue outage); ambiguous matches and known identity conflicts are rejected. Existing successful ID/source paths are retained.",
+      "notes": "Current public website build/bootstrap proof; exact season and episode mapping; verified native HLS/MP4 only. No VUEO site-specific code. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes. CloudAnime 1.9.0: identity-mapping failure only triggers bounded exact-title/season fallback using matching VUEO metadata and AniList (Jikan on catalogue outage); ambiguous matches and known identity conflicts are rejected. Existing successful ID/source paths are retained. Fail fast when identity resolution returns no match; cancel pending provider requests and stop further discovery.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [
