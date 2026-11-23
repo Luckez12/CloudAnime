@@ -1,3 +1,82 @@
+/* Shared episode resolver embedded in each standalone provider. */
+async function cloudAnimeLinkedEpisode(rows, read, season, episode) {
+  function result(row, data, localEpisode, method) {
+    var mapping=data.mappings, titles=Object.values(data.titles||{}).filter(function(value){return typeof value==='string'&&value.trim();});
+    return {id:Number(row.myanimelist),ep:localEpisode,mal_id:Number(row.myanimelist),
+      anilist:Number(mapping.anilist_id||row.anilist)||null,episode:localEpisode,mal_episode:localEpisode,
+      anime_title:(data.titles||{}).en||(data.titles||{})['x-jat']||titles[0]||'',titles:titles,
+      expectedEpisodes:Number(data.episodeCount)||null,animeplanet_slug:row['anime-planet']||'',
+      sourceSeason:Number(row['themoviedb-season']),sourceYear:String((data.episodes||{})['1']&&((data.episodes||{})['1'].airDate||(data.episodes||{})['1'].airdate)||'').slice(0,4),
+      method:method,mapping_method:method};
+  }
+  var anchors = rows.filter(function(row) {
+    return row && Number(row['themoviedb-season']) === season &&
+      row['themoviedb-season'] != null && row['thetvdb-season'] != null &&
+      Number(row['thetvdb-season']) === season && Number(row.thetvdb) > 0;
+  });
+  if (!anchors.length) return null;
+  var candidates = rows.filter(function(row) {
+    return Number(row.myanimelist) > 0 && row['thetvdb-season'] != null && anchors.some(function(anchor) {
+        return String(anchor.themoviedb) === String(row.themoviedb) && Number(anchor.thetvdb) === Number(row.thetvdb);
+      });
+  }).filter(function(row, index, list) {
+    return list.findIndex(function(other) { return Number(other.myanimelist) === Number(row.myanimelist); }) === index;
+  });
+  if (candidates.length > 12) throw Error('Episode mapping exceeds candidate budget');
+  var matches = [], outside = false, parts = [];
+  for (var offset = 0; offset < candidates.length; offset += 4) {
+    var batch = candidates.slice(offset, offset + 4);
+    var datasets = await Promise.all(batch.map(function(row) {
+      return read('https://api.ani.zip/mappings?mal_id=' + Number(row.myanimelist));
+    }));
+    batch.forEach(function(row, index) {
+      var data = datasets[index], mapping = data && data.mappings;
+      if (!mapping || Number(mapping.mal_id) !== Number(row.myanimelist) ||
+          String(mapping.themoviedb_id) !== String(row.themoviedb) ||
+          Number(mapping.thetvdb_id) !== Number(row.thetvdb)) throw Error('Conflicting episode mapping identity');
+      if (Number(row['themoviedb-season']) === season && Number(data.episodeCount) > 0 && episode > Number(data.episodeCount)) outside = true;
+      parts.push({row:row,data:data});
+      Object.values(data.episodes || {}).forEach(function(entry) {
+        if (!entry || entry.seasonNumber == null || entry.episodeNumber == null ||
+            Number(entry.tvdbShowId) !== Number(row.thetvdb) || Number(entry.seasonNumber) !== season ||
+            Number(entry.episodeNumber) !== episode || !Number.isInteger(Number(entry.episode)) || Number(entry.episode) < 1) return;
+        var hit = result(row,data,Number(entry.episode),'linked exact episode identity');
+        if (!matches.some(function(existing) { return existing.id === hit.id && existing.ep === hit.ep; })) matches.push(hit);
+      });
+    });
+  }
+  if (matches.length > 1) throw Error('Conflicting episode mapping candidates');
+  if (matches.length === 1) return matches[0];
+  if (outside && season === 1) {
+    var ranges = parts.map(function(part) {
+      var entries = Object.values(part.data.episodes || {}).filter(function(entry) {
+        return entry && /^[1-9]\d*$/.test(String(entry.episode));
+      }).sort(function(a,b) { return Number(a.episode)-Number(b.episode); });
+      if (!entries.length || entries.length !== Number(part.data.episodeCount)) return null;
+      var start = Number(entries[0].absoluteEpisodeNumber);
+      if (!Number.isInteger(start) || start < 1) return null;
+      if (!entries.every(function(entry,index) {
+        return Number(entry.episode) === index+1 && Number(entry.tvdbShowId) === Number(part.row.thetvdb) &&
+          Number(entry.absoluteEpisodeNumber) === start+index && Number(entry.seasonNumber) > 0;
+      })) return null;
+      return {start:start,end:start+entries.length-1,entries:entries,row:part.row,data:part.data};
+    });
+    if (ranges.every(Boolean)) {
+      ranges.sort(function(a,b) { return a.start-b.start; });
+      var next=1, selected=null, complete=true;
+      ranges.forEach(function(range) {
+        if (range.start !== next) complete=false;
+        next=range.end+1;
+        if (episode >= range.start && episode <= range.end)
+          selected=result(range.row,range.data,Number(range.entries[episode-range.start].episode),'verified continuous absolute episode mapping');
+      });
+      if (complete && selected) return selected;
+    }
+  }
+  if (outside) throw Error('No verified episode mapping outside original anime range');
+  return null;
+}
+
 /* CloudAnime AnimeSalt v2.3.0 — generic catalogue ranges and evidence-based anime mapping. */
 (function () {
   "use strict";
@@ -340,8 +419,19 @@
       }catch(e){
         var missing=e.name==='AnimeSaltNoMatch'&&/^(?:No exact title\/year match|Exact requested site season unavailable|Exact site episode unavailable|Site uses absolute episode parts)/.test(e.message);
         if(!missing||type!=='tv'||season<1)throw e;
-        var bridge=await animeBridge(meta),mapped=await mappedTitle(meta,bridge);found=mapped.found;route=mapped.route;
-        page=await episodePage(found,route);
+        var rows=JSON.parse(await document('https://arm.haglund.dev/api/v2/themoviedb?id='+id));
+        var linked=await cloudAnimeLinkedEpisode((rows||[]).filter(function(row){return row&&String(row.themoviedb)===id&&row.media!=='MOVIE';}),async function(url){return JSON.parse(await document(url));},season,episode);
+        if(linked&&Number.isInteger(linked.sourceSeason)&&linked.sourceSeason>0){
+          route={season:linked.sourceSeason,episode:linked.episode};
+          try {if(!found)throw e;page=await episodePage(found,route);}
+          catch(routeError){
+            if(!linked.anime_title)throw routeError;
+            found=await findTitle(Object.assign({},meta,{title:linked.anime_title,titles:linked.titles,year:linked.sourceYear||meta.year,years:[linked.sourceYear||meta.year],scoped:true}));
+            route={season:1,episode:linked.episode};page=await episodePage(found,route);
+          }
+        }
+        else {var bridge=await animeBridge(meta),mapped=await mappedTitle(meta,bridge);found=mapped.found;route=mapped.route;}
+        if(!page)page=await episodePage(found,route);
       }
       log('MATCH',found.title+'; title identity and episode route verified');
       if(type==='tv')log('EPISODE','Requested TMDB S'+season+'E'+episode+'; verified site S'+route.season+'E'+route.episode);

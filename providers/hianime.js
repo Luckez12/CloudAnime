@@ -1,5 +1,14 @@
-/* Embedded in HiAnime so its standalone provider needs no extra imports. */
+/* Shared episode resolver embedded in each standalone provider. */
 async function cloudAnimeLinkedEpisode(rows, read, season, episode) {
+  function result(row, data, localEpisode, method) {
+    var mapping=data.mappings, titles=Object.values(data.titles||{}).filter(function(value){return typeof value==='string'&&value.trim();});
+    return {id:Number(row.myanimelist),ep:localEpisode,mal_id:Number(row.myanimelist),
+      anilist:Number(mapping.anilist_id||row.anilist)||null,episode:localEpisode,mal_episode:localEpisode,
+      anime_title:(data.titles||{}).en||(data.titles||{})['x-jat']||titles[0]||'',titles:titles,
+      expectedEpisodes:Number(data.episodeCount)||null,animeplanet_slug:row['anime-planet']||'',
+      sourceSeason:Number(row['themoviedb-season']),sourceYear:String((data.episodes||{})['1']&&((data.episodes||{})['1'].airDate||(data.episodes||{})['1'].airdate)||'').slice(0,4),
+      method:method,mapping_method:method};
+  }
   var anchors = rows.filter(function(row) {
     return row && Number(row['themoviedb-season']) === season &&
       row['themoviedb-season'] != null && row['thetvdb-season'] != null &&
@@ -31,8 +40,8 @@ async function cloudAnimeLinkedEpisode(rows, read, season, episode) {
         if (!entry || entry.seasonNumber == null || entry.episodeNumber == null ||
             Number(entry.tvdbShowId) !== Number(row.thetvdb) || Number(entry.seasonNumber) !== season ||
             Number(entry.episodeNumber) !== episode || !Number.isInteger(Number(entry.episode)) || Number(entry.episode) < 1) return;
-        var result = {id:Number(row.myanimelist), ep:Number(entry.episode), method:'linked exact episode identity'};
-        if (!matches.some(function(hit) { return hit.id === result.id && hit.ep === result.ep; })) matches.push(result);
+        var hit = result(row,data,Number(entry.episode),'linked exact episode identity');
+        if (!matches.some(function(existing) { return existing.id === hit.id && existing.ep === hit.ep; })) matches.push(hit);
       });
     });
   }
@@ -50,7 +59,7 @@ async function cloudAnimeLinkedEpisode(rows, read, season, episode) {
         return Number(entry.episode) === index+1 && Number(entry.tvdbShowId) === Number(part.row.thetvdb) &&
           Number(entry.absoluteEpisodeNumber) === start+index && Number(entry.seasonNumber) > 0;
       })) return null;
-      return {start:start,end:start+entries.length-1,entries:entries,row:part.row};
+      return {start:start,end:start+entries.length-1,entries:entries,row:part.row,data:part.data};
     });
     if (ranges.every(Boolean)) {
       ranges.sort(function(a,b) { return a.start-b.start; });
@@ -59,7 +68,7 @@ async function cloudAnimeLinkedEpisode(rows, read, season, episode) {
         if (range.start !== next) complete=false;
         next=range.end+1;
         if (episode >= range.start && episode <= range.end)
-          selected={id:Number(range.row.myanimelist),ep:Number(range.entries[episode-range.start].episode),method:'verified continuous absolute episode mapping'};
+          selected=result(range.row,range.data,Number(range.entries[episode-range.start].episode),'verified continuous absolute episode mapping');
       });
       if (complete && selected) return selected;
     }
@@ -350,7 +359,7 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
           : null;
       }
       var linked = await cloudAnimeLinkedEpisode(rows, metadata, season, episode);
-      if (linked) return linked;
+      if (linked) return {id:linked.mal_id,ep:linked.episode,method:linked.method};
       var exact = rows.filter(function (r) {
         return (
           r["themoviedb-season"] != null &&

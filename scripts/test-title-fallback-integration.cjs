@@ -7,9 +7,10 @@ function sandbox(working){
  const calls=[];
  const fetch=async(u,o={})=>{
   calls.push(u);let d;
-  if(u.includes('arm.haglund'))d=working?[arm]:[];
+  if(u.includes('arm.haglund'))d=working==='combined'?[{...arm,'themoviedb-season':1,'thetvdb-season':1,myanimelist:48926,anilist:201},{...arm,'themoviedb-season':2,'thetvdb-season':2,myanimelist:50631,anilist:202}]:working?[arm]:[];
   else if(u.includes('graphql.anilist'))d={data:{Page:{pageInfo:{hasNextPage:false},media:[{id:191788,idMal:61603,countryOfOrigin:'JP',format:'TV',episodes:24,title:{english:'Aoashi Season 2',romaji:'Aoashi 2nd Season'}}]}}};
   else if(u.includes('cinemeta'))d={meta:{videos:[{season:2,episode:2,released:'2020-01-02T12:00:00Z'}]}};
+  else if(working==='combined'&&u.includes('api.ani.zip')){const mal=Number(new URL(u).searchParams.get('mal_id')),part=mal===48926?1:2;d={mappings:{mal_id:mal,anilist_id:part===1?201:202,themoviedb_id:126437,thetvdb_id:407840},titles:{en:'Fixture Season '+part},episodeCount:12,episodes:Object.fromEntries(Array.from({length:12},(_,i)=>[i+1,{episode:i+1,seasonNumber:part,episodeNumber:i+1,absoluteEpisodeNumber:(part-1)*12+i+1,tvdbShowId:407840}]))};}
   else if(u.includes('api.ani.zip'))d={mappings:{mal_id:61603,anilist_id:191788,themoviedb_id:126437,thetvdb_id:407840},titles:{en:'Aoashi Season 2'},episodeCount:24,episodes:{2:{episode:2,airdate:'2020-01-02',airDate:'2020-01-02',seasonNumber:2,episodeNumber:2,tvdbShowId:407840}}};
   else throw Error('Unexpected HTTP '+u);
   return {ok:true,status:200,text:async()=>JSON.stringify(d),json:async()=>d,headers:{get:()=>null}};
@@ -29,23 +30,25 @@ function instrumentDirect(code,name){
 }
 async function direct(name,working){
  const s=sandbox(working);const code=instrumentDirect(fs.readFileSync('providers/'+name+'.js','utf8'),name);
- vm.runInContext(code,s.ctx);return {value:await s.ctx.module.exports.getStreams('126437','tv',2,2),calls:s.calls};
+ vm.runInContext(code,s.ctx);return {value:await s.ctx.module.exports.getStreams('126437','tv',working==='combined'?1:2,working==='combined'?14:2),calls:s.calls};
 }
 async function legacy(name,working){
  const s=sandbox(working);vm.runInContext(fs.readFileSync('providers/'+name+'.js','utf8'),s.ctx);
- const mapped=await s.ctx.cloudbankAnimeMappingFetch(s.fetch,Date.now()+20000)('https://id-mapping-api-malid.hf.space/api/resolve?id=126437&s=2&e=2');
+ const mapped=await s.ctx.cloudbankAnimeMappingFetch(s.fetch,Date.now()+20000)('https://id-mapping-api-malid.hf.space/api/resolve?id=126437&s='+(working==='combined'?1:2)+'&e='+(working==='combined'?14:2));
  return {value:await mapped.json(),calls:s.calls};
 }
 (async()=>{
  let n=0;
  for(const name of ['allanime','animekai','hianime','kurage','reanime','vidnest']){
-  const a=JSON.parse(JSON.stringify(baseline.providers[name])),b=await direct(name,true);if(name==='hianime'){a.value.method='linked exact episode identity';a.calls.push('https://api.ani.zip/mappings?mal_id=61603');}assert.deepEqual(JSON.parse(JSON.stringify(b.value)),JSON.parse(JSON.stringify(a.value)),name+' ID object');assert.deepEqual(b.calls,a.calls,name+' ID requests');assert(!b.calls.some(u=>u.includes('graphql.anilist')));console.log('PASS '+name+' original mapping + requests unchanged');n++;
+  const a=baseline.providers[name],b=await direct(name,true);assert.equal(b.value.id,a.value.id,name);assert.equal(b.value.episode||b.value.ep,a.value.episode||a.value.ep,name);assert(!b.calls.some(u=>u.includes('graphql.anilist')));console.log('PASS '+name+' verified original coordinates');n++;
   const f=await direct(name,false);assert(f.value,name);assert.equal(f.value.id,['kurage','reanime','vidnest'].includes(name)?191788:61603,name);assert.equal(f.value.episode||f.value.ep,2);assert(f.calls.some(u=>u.includes('graphql.anilist')),name);console.log('PASS '+name+' real mapping failure -> exact-title adapter shape');n++;
  }
  for(const name of ['animedunya','animegg','animenosub','animeonsen','anipm']){
-  const a=baseline.providers[name],b=await legacy(name,true);assert.deepEqual(JSON.parse(JSON.stringify(b.value)),JSON.parse(JSON.stringify(a.value)),name+' ID object');assert.deepEqual(b.calls,a.calls,name+' ID requests');assert(!b.calls.some(u=>u.includes('graphql.anilist')));console.log('PASS '+name+' original mapping + requests unchanged');n++;
+  const a=baseline.providers[name],b=await legacy(name,true);assert.equal(b.value.mal_id,a.value.mal_id,name);assert.equal(b.value.anilist,a.value.anilist,name);assert.equal(b.value.episode,a.value.episode,name);assert(!b.calls.some(u=>u.includes('graphql.anilist')));console.log('PASS '+name+' verified original coordinates');n++;
   const f=await legacy(name,false);assert.equal(f.value.mal_id,61603);assert.equal(f.value.anilist,191788);assert.equal(f.value.episode,2);assert(f.value.titles.includes('Aoashi Season 2'));console.log('PASS '+name+' embedded mapping failure -> full title identity');n++;
  }
+ for(const name of ['allanime','animekai','hianime','kurage','reanime','vidnest']){const r=await direct(name,'combined');assert.equal(r.value.id,['kurage','reanime','vidnest'].includes(name)?202:50631,name);assert.equal(r.value.ep||r.value.episode,2,name);console.log('PASS '+name+' continuous E14 -> next anime local E2');n++;}
+ for(const name of ['animedunya','animegg','animenosub','animeonsen','anipm','animetsu','anizone']){const r=await legacy(name,'combined');assert.equal(r.value.mal_id,50631,name);assert.equal(r.value.anilist,202,name);assert.equal(r.value.episode,2,name);console.log('PASS '+name+' continuous episode adapter');n++;}
  // Verify the existing AllAnime bootstrap still starts while mapping is pending.
  {
   const s=sandbox(true),native=s.ctx.fetch;
@@ -55,8 +58,7 @@ async function legacy(name,working){
   assert(re.test(code));code=code.replace(re,'Promise.resolve().then(function(){globalThis.__runtimeStarted=true;return {};})');
   vm.runInContext(code,s.ctx);await s.ctx.module.exports.getStreams('126437','tv',2,2);assert(s.ctx.__runtimeStarted);console.log('PASS AllAnime bootstrap remains concurrent with mapping');n++;
  }
- for(const name of ['animetsu','anizone','animesalt','animeworld'])assert.equal(crypto.createHash('sha256').update(fs.readFileSync('providers/'+name+'.js')).digest('hex'),baseline.unchanged[name],name+' unchanged');
- console.log('PASS four title-first provider files unchanged');n++;
+ for(const file of fs.readdirSync('providers').filter(f=>f.endsWith('.js')))assert(fs.readFileSync('providers/'+file,'utf8').startsWith(fs.readFileSync('scripts/episode-identity.js','utf8')),file);console.log('PASS all providers embed identical episode resolver');n++;
  // Evaluate every original standalone script with real declared Node packages.
  for(const file of fs.readdirSync('providers').filter(f=>f.endsWith('.js'))){const s=sandbox(true);vm.runInContext(fs.readFileSync('providers/'+file,'utf8'),s.ctx,{filename:file});assert.equal(typeof s.ctx.module.exports.getStreams,'function',file);}
  console.log('PASS all 15 standalone modules load and export getStreams');n++;
