@@ -19,5 +19,12 @@ const data=(mal,local,global)=>({mappings:{mal_id:mal,themoviedb_id:123876,thetv
   const calls=[],sandbox={module:{exports:{}},URL,AbortController,setTimeout,clearTimeout,console:{log(){}},fetch:async u=>{calls.push(u);const body=u.includes('arm.haglund')?rows:datasets[new URL(u).searchParams.get('mal_id')];return{ok:true,text:async()=>JSON.stringify(body)}}};
   vm.createContext(sandbox);let code=fs.readFileSync('providers/hianime.js','utf8');code=code.replace(/var mapped\s*=\s*await (?=\(async function)/,'return await ');vm.runInContext(code,sandbox);const r=await sandbox.module.exports.getStreams('123876','tv',1,14);assert.equal(r.id,99999);assert.equal(r.ep,2);assert(!calls.some(u=>u.includes('megaplay')));
  });
+ await test('separate native seasons resolve published absolute numbering',async()=>{
+  const second={...rows[1],'thetvdb-season':2};
+  function full(mal,season,start,count){const d=data(mal,1,start);d.episodeCount=count;d.episodes={};for(let i=1;i<=count;i++)d.episodes[i]={episode:i,seasonNumber:season,episodeNumber:i,absoluteEpisodeNumber:start+i-1,tvdbShowId:99};return d;}
+  const d={48926:full(48926,1,1,12),99999:full(99999,2,13,12)};
+  const r=await run([rows[0],second],d);assert.equal(r.id,99999);assert.equal(r.ep,2);
+  d[99999].episodes[2].absoluteEpisodeNumber=99;await assert.rejects(run([rows[0],second],d));
+ });
  console.log(n+' mapping regression cases passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
