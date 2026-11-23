@@ -1,6 +1,6 @@
 {
   "name": "CloudAnime",
-  "version": "1.9.1",
+  "version": "1.9.3",
   "scrapers": [
     {
       "id": "allanime",
@@ -208,7 +208,7 @@
       "id": "hianime",
       "name": "HiAnime",
       "description": "Anime \u00b7 Japanese/Sub only \u00b7 Verified MAL episode mapping \u00b7 Current MegaPlay encrypted extraction and website CDN failover",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -231,7 +231,7 @@
         "tv"
       ],
       "upstreamVersion": "1.0.0",
-      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes. CloudAnime 1.9.0: identity-mapping failure only triggers bounded exact-title/season fallback using matching VUEO metadata and AniList (Jikan on catalogue outage); ambiguous matches and known identity conflicts are rejected. Existing successful ID/source paths are retained.",
+      "notes": "Imported from D3adlyRocket/All-in-One-Nuvio at 3f09a6ff4360498895e622877af7a32212f75038. Cloudbank adapter preserves upstream extraction/settings, uses shared TMDB detail metadata when available, caps async result wait at 19s, and returns valid stream arrays. Playback and host settings support require app testing. Version consolidation: alternate cores embedded as bounded delayed/failed-primary fallbacks; provider identity, playback metadata and settings preserved. Source disabled/platform flags retained per engine. Playback requires app testing. Migrated from Cloudbank 1.20.11 into CloudAnime; upstream labels filtered before display formatting. No live playback claim. Audio identity without sub/Japanese evidence is excluded. CloudAnime 1.8.38: excludes known resolutions below 720p in provider output; Auto/Unknown allowed. No new HTTP probes or VUEO changes. CloudAnime 1.9.0: identity-mapping failure only triggers bounded exact-title/season fallback using matching VUEO metadata and AniList (Jikan on catalogue outage); ambiguous matches and known identity conflicts are rejected. Existing successful ID/source paths are retained. Resolve linked episode identity across anime entries before using the season shortcut; no title-specific offsets.",
       "sourceRepository": "https://github.com/D3adlyRocket/All-in-One-Nuvio",
       "sourceCommit": "3f09a6ff4360498895e622877af7a32212f75038",
       "runtimeModules": [

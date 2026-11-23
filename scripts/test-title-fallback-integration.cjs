@@ -39,7 +39,7 @@ async function legacy(name,working){
 (async()=>{
  let n=0;
  for(const name of ['allanime','animekai','hianime','kurage','reanime','vidnest']){
-  const a=baseline.providers[name],b=await direct(name,true);assert.deepEqual(JSON.parse(JSON.stringify(b.value)),JSON.parse(JSON.stringify(a.value)),name+' ID object');assert.deepEqual(b.calls,a.calls,name+' ID requests');assert(!b.calls.some(u=>u.includes('graphql.anilist')));console.log('PASS '+name+' original mapping + requests unchanged');n++;
+  const a=JSON.parse(JSON.stringify(baseline.providers[name])),b=await direct(name,true);if(name==='hianime'){a.value.method='linked exact episode identity';a.calls.push('https://api.ani.zip/mappings?mal_id=61603');}assert.deepEqual(JSON.parse(JSON.stringify(b.value)),JSON.parse(JSON.stringify(a.value)),name+' ID object');assert.deepEqual(b.calls,a.calls,name+' ID requests');assert(!b.calls.some(u=>u.includes('graphql.anilist')));console.log('PASS '+name+' original mapping + requests unchanged');n++;
   const f=await direct(name,false);assert(f.value,name);assert.equal(f.value.id,['kurage','reanime','vidnest'].includes(name)?191788:61603,name);assert.equal(f.value.episode||f.value.ep,2);assert(f.calls.some(u=>u.includes('graphql.anilist')),name);console.log('PASS '+name+' real mapping failure -> exact-title adapter shape');n++;
  }
  for(const name of ['animedunya','animegg','animenosub','animeonsen','anipm']){
