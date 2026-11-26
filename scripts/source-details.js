@@ -1,5 +1,5 @@
 /* CLOUDANIME_SOURCE_DETAILS_V1: display only; no network requests. */
-function cloudAnimeSourceDetails(streams, providerName) {
+function cloudAnimeSourceDetails(streams, providerName, providerId, logo) {
   if (!Array.isArray(streams)) return streams;
   function clean(value) { return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() : ''; }
   return streams.map(function(stream) {
@@ -25,16 +25,21 @@ function cloudAnimeSourceDetails(streams, providerName) {
     });
     var subType = clean(stream.subtitleType).toLowerCase();
     var sub = subType === 'hardsub' ? 'Hardsub' : subType === 'softsub' || tracks.length ? 'Softsub' : /\bsub\b/i.test(stream.audioType || '') ? 'Sub' : '';
-    if (languages.length && sub !== 'Hardsub') sub += ': ' + languages.slice(0,2).join(', ') + (languages.length > 2 ? ' +' + (languages.length-2) : '');
-    var lines = [title, [server, quality].filter(Boolean).join(' • '), [Number.isInteger(ep) && ep > 0 ? 'EP ' + ep : '', audio, sub].filter(Boolean).join(' • ')].filter(Boolean);
-    return Object.assign({}, stream, { name: providerName, title: lines.join('\n'), sourceTitle: title, sourceEpisode: Number.isInteger(ep) && ep > 0 ? ep : undefined });
+    if (languages.length && sub !== 'Hardsub') sub += ' • ' + languages.slice(0,2).join(', ') + (languages.length > 2 ? ' +' + (languages.length-2) : '');
+    var lines = [[title, Number.isInteger(ep) && ep > 0 ? 'EP ' + ep : ''].filter(Boolean).join(' • '), [server, quality, audio].filter(Boolean).join(' • '), sub].filter(Boolean);
+    var output = Object.assign({}, stream, { name: providerName, title: lines.join('\n'), serverName: server, sourceTitle: title, sourceEpisode: Number.isInteger(ep) && ep > 0 ? ep : undefined });
+    // Use the same identity/server fields as the providers already rendering correctly.
+    delete output.server;
+    if (providerId) output.provider = providerId;
+    if (logo) output.logo = logo;
+    return output;
   });
 }
-function cloudAnimeInstallSourceDetails(provider, providerName) {
+function cloudAnimeInstallSourceDetails(provider, providerName, providerId, logo) {
   var original = provider.getStreams;
   return Object.assign({}, provider, {getStreams:function() {
     var receiver=this,args=arguments;
-    return Promise.resolve().then(function(){return original.apply(receiver,args);}).then(function(streams){return cloudAnimeSourceDetails(streams,providerName);});
+    return Promise.resolve().then(function(){return original.apply(receiver,args);}).then(function(streams){return cloudAnimeSourceDetails(streams,providerName,providerId,logo);});
   }});
 }
 /* CLOUDANIME_SOURCE_DETAILS_END */
