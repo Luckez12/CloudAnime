@@ -38,7 +38,7 @@ let checks=0;
   const output=await ctx.getStreams('tmdb:12','tv',2,4);
   assert.deepEqual(received.args,['tmdb:12','tv',2,4]);
   assert.deepEqual(Array.from(output,s=>s.id),cases.map(([,keep],i)=>keep?i:null).filter(i=>i!==null),provider.id);
-  for(const s of output){assert.equal(s,fixtures[s.id]);assert.equal(s.headers,headers);assert.equal(s.subtitles,subtitles)}
+  for(const s of output){assert.equal(s.url,fixtures[s.id].url);assert.equal(s.quality,fixtures[s.id].quality);assert.equal(s.headers,headers);assert.equal(s.subtitles,subtitles)}
   // Both all-low and empty lists finish as empty, without a network fallback here.
   assert.equal(ctx.cloudAnimeMinimumResolution([{quality:'480p'}],provider.id).length,0);
   assert.equal(ctx.cloudAnimeMinimumResolution([],provider.id).length,0);

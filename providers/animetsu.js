@@ -484,7 +484,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
             var format = /\.srt(?:\?|$)/i.test(link) || /\b(?:srt|subrip|x-subrip)\b/i.test(hint) ? 'srt' : /\.(?:ass|ssa)(?:\?|$)/i.test(link) || /\b(?:ass|ssa|x-ssa)\b/i.test(hint) ? 'ass' : 'vtt';
             subtitles.push({url:link,name:lang.name,label:lang.name,language:lang.code,lang:lang.code,srclang:lang.code,format:format,type:format === 'vtt' ? 'text/vtt' : format === 'ass' ? 'text/x-ssa' : 'application/x-subrip',mimeType:format === 'vtt' ? 'text/vtt' : format === 'ass' ? 'text/x-ssa' : 'application/x-subrip',headers:headers});
           });
-          return {name:'Animetsu',provider:'animetsu',serverName:'Bee',title:(mapped.anime_title || 'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:url,quality:source.quality || 'Auto',type:'hls',mimeType:'application/x-mpegURL',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:subtitles,intro:point(selected.intro),outro:point(selected.outro)};
+          return {sourceTitle:mapped.anime_title||'',sourceEpisode:mapped.episode,name:'Animetsu',provider:'animetsu',serverName:'Bee',title:(mapped.anime_title || 'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:url,quality:source.quality || 'Auto',type:'hls',mimeType:'application/x-mpegURL',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:subtitles,intro:point(selected.intro),outro:point(selected.outro)};
         } catch(e) {if (!sourceSettled) log('SOURCE_FAILED',e.message);return null;}
       }))).filter(Boolean);
       return beeResult;
@@ -515,7 +515,7 @@ function cloudbankAnimeMappingFetch(nativeFetch) {
               var range=h('content-range').match(/^bytes 0-(\d+)\/(\d+)$/i),body=r.body;
               // ASCII box names survive UTF-8 text bridges; never rely on byte offsets.
               if(!range||Number(range[1])>1023||Number(range[2])<=Number(range[1])||!/^video\/mp4(?:;|$)/i.test(h('content-type'))||!body||body.length>4096||/<(?:!doctype|html|script)|^\s*[\[{]/i.test(body)||!/(?:ftyp|styp)(?:isom|iso[2-9]|mp4[12]|avc1|dash|MSNV)/.test(body.slice(0,128)))throw Error('GG partial response is not confirmed MP4');
-              return {name:'Animetsu',provider:'animetsu',serverName:c.direct?'GG Direct':'GG',title:(mapped.anime_title||'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:c.url,quality:c.quality,type:'mp4',mimeType:'video/mp4',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]};
+              return {sourceTitle:mapped.anime_title||'',sourceEpisode:mapped.episode,name:'Animetsu',provider:'animetsu',serverName:c.direct?'GG Direct':'GG',title:(mapped.anime_title||'Anime')+' • Episode '+mapped.episode+' • Japanese Sub',url:c.url,quality:c.quality,type:'mp4',mimeType:'video/mp4',audioType:'original',audioLanguage:'ja',headers:headers,subtitles:[]};
             })().then(function(source) {
               if(done||sourceSettled)return;done=true;
               log('SOURCE','GG MP4 partial response confirmed; first valid route only');resolve([source]);
@@ -634,6 +634,52 @@ function cloudAnimeInstallMinimumResolution(provider, providerId) {
 /* CLOUDANIME_MINIMUM_RESOLUTION_END */
 
 module.exports = cloudAnimeInstallMinimumResolution(module.exports, "animetsu");
+if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
+if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
+if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
+
+/* CLOUDANIME_SOURCE_DETAILS_V1: display only; no network requests. */
+function cloudAnimeSourceDetails(streams, providerName) {
+  if (!Array.isArray(streams)) return streams;
+  function clean(value) { return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() : ''; }
+  return streams.map(function(stream) {
+    if (!stream || typeof stream !== 'object') return stream;
+    var old = clean(stream.title), title = clean(stream.sourceTitle || stream.animeTitle);
+    if (!title && !/^(?:MAL|AniList|Episode|Japanese Sub)\b/i.test(old)) {
+      title = clean(String(stream.title || '').split(/\r?\n/)[0]).split(/\s*[•·]\s*/)[0].replace(/\s*-\s*Episode\s+\d+.*$/i, '').trim();
+      if (/^(?:Anime|Kurage|CloudAnime)$/i.test(title)) title = '';
+    }
+    var match = /\b(?:Episode\s+|S\d+E)(\d+)\b/i.exec(old);
+    var ep = Number(stream.sourceEpisode || match && match[1]);
+    var server = clean(stream.serverName || stream.server).replace(/\s+(?:Hardsub|Softsub)$/i, '');
+    var quality = clean(String(stream.quality || ''));
+    if (/^(?:unknown|undefined|null)$/i.test(quality)) quality = '';
+    var audio = clean(stream.audioLanguage || stream.audio);
+    audio = /^(?:ja|jp|jpn|japanese)$/i.test(audio) ? 'Japanese Audio' : /^(?:en|eng|english)$/i.test(audio) ? 'English Audio' : audio ? audio + ' Audio' : '';
+    var tracks = Array.isArray(stream.subtitles) ? stream.subtitles.filter(function(t) { return t && (t.url || t.file || t.src); }) : [];
+    var languages = [];
+    tracks.forEach(function(t) {
+      var label = clean(t.language || t.lang || t.name || t.label);
+      label = /^(?:en|eng|english)$/i.test(label) ? 'English' : /^(?:ms|may|malay)$/i.test(label) ? 'Malay' : /^(?:id|ind|indo|indonesian)$/i.test(label) ? 'Indonesian' : label;
+      if (label && languages.indexOf(label) < 0) languages.push(label);
+    });
+    var subType = clean(stream.subtitleType).toLowerCase();
+    var sub = subType === 'hardsub' ? 'Hardsub' : subType === 'softsub' || tracks.length ? 'Softsub' : /\bsub\b/i.test(stream.audioType || '') ? 'Sub' : '';
+    if (languages.length && sub !== 'Hardsub') sub += ': ' + languages.slice(0,2).join(', ') + (languages.length > 2 ? ' +' + (languages.length-2) : '');
+    var lines = [title, [server, quality].filter(Boolean).join(' • '), [Number.isInteger(ep) && ep > 0 ? 'EP ' + ep : '', audio, sub].filter(Boolean).join(' • ')].filter(Boolean);
+    return Object.assign({}, stream, { name: providerName, title: lines.join('\n'), sourceTitle: title, sourceEpisode: Number.isInteger(ep) && ep > 0 ? ep : undefined });
+  });
+}
+function cloudAnimeInstallSourceDetails(provider, providerName) {
+  var original = provider.getStreams;
+  return Object.assign({}, provider, {getStreams:function() {
+    var receiver=this,args=arguments;
+    return Promise.resolve().then(function(){return original.apply(receiver,args);}).then(function(streams){return cloudAnimeSourceDetails(streams,providerName);});
+  }});
+}
+/* CLOUDANIME_SOURCE_DETAILS_END */
+
+module.exports = cloudAnimeInstallSourceDetails(module.exports, "Animetsu");
 if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
 if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
 if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;

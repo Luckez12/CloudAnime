@@ -307,7 +307,7 @@ async function cloudAnimeLinkedEpisode(rows, read, season, episode) {
         var tracks=Array.isArray(config.tracks)?config.tracks:[],seen=Object.create(null),subtitles=[];
         tracks.forEach(function(t){var lang=language(t),u=address(t.file||t.url,p.url);if(!/^(?:captions|subtitles)$/.test(t.kind||'')||!lang||!u||seen[u])return;seen[u]=true;subtitles.push({url:u,language:lang,name:lang==='en'?'English':lang==='ms'?'Malay':'Indo',mimeType:/\.vtt(?:\?|$)/i.test(u)?'text/vtt':/\.(?:ass|ssa)(?:\?|$)/i.test(u)?'text/x-ssa':'application/x-subrip',headers:headers});});
         log('EXTRACT','Master HLS verified; Japanese-only playback policy; '+audio.length+' native audio renditions verified; '+subtitles.length+' published subtitle tracks');
-        return {name:'AnimeWorld',provider:'animeworld',serverName:new URL(p.url).hostname,title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+' • Japanese Original',url:url+'#vueo_hls_v1=plain&audio=ja,jp,jpn,japanese',type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:'original',audio:'Japanese',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)};
+        return {name:'AnimeWorld',provider:'animeworld',serverName:new URL(p.url).hostname,sourceTitle:page.title,sourceEpisode:episode,title:page.title+(type==='tv'?' • S'+season+'E'+episode:'')+' • Japanese Original',url:url+'#vueo_hls_v1=plain&audio=ja,jp,jpn,japanese',type:'hls',mimeType:'application/x-mpegURL',quality:'Auto',audioType:'original',audio:'Japanese',audioLanguage:'ja',headers:Object.assign({},headers,{'X-VUEO-HTTP-Transport':'shared'}),subtitles:subtitles.slice(0,16)};
       }catch(e){log('SOURCE','Player: '+e.message);return null;}}))).filter(Boolean);
     }
     async function extract(page){
@@ -411,6 +411,52 @@ function cloudAnimeInstallMinimumResolution(provider, providerId) {
 /* CLOUDANIME_MINIMUM_RESOLUTION_END */
 
 module.exports = cloudAnimeInstallMinimumResolution(module.exports, "animeworld");
+if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
+if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
+if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
+
+/* CLOUDANIME_SOURCE_DETAILS_V1: display only; no network requests. */
+function cloudAnimeSourceDetails(streams, providerName) {
+  if (!Array.isArray(streams)) return streams;
+  function clean(value) { return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() : ''; }
+  return streams.map(function(stream) {
+    if (!stream || typeof stream !== 'object') return stream;
+    var old = clean(stream.title), title = clean(stream.sourceTitle || stream.animeTitle);
+    if (!title && !/^(?:MAL|AniList|Episode|Japanese Sub)\b/i.test(old)) {
+      title = clean(String(stream.title || '').split(/\r?\n/)[0]).split(/\s*[•·]\s*/)[0].replace(/\s*-\s*Episode\s+\d+.*$/i, '').trim();
+      if (/^(?:Anime|Kurage|CloudAnime)$/i.test(title)) title = '';
+    }
+    var match = /\b(?:Episode\s+|S\d+E)(\d+)\b/i.exec(old);
+    var ep = Number(stream.sourceEpisode || match && match[1]);
+    var server = clean(stream.serverName || stream.server).replace(/\s+(?:Hardsub|Softsub)$/i, '');
+    var quality = clean(String(stream.quality || ''));
+    if (/^(?:unknown|undefined|null)$/i.test(quality)) quality = '';
+    var audio = clean(stream.audioLanguage || stream.audio);
+    audio = /^(?:ja|jp|jpn|japanese)$/i.test(audio) ? 'Japanese Audio' : /^(?:en|eng|english)$/i.test(audio) ? 'English Audio' : audio ? audio + ' Audio' : '';
+    var tracks = Array.isArray(stream.subtitles) ? stream.subtitles.filter(function(t) { return t && (t.url || t.file || t.src); }) : [];
+    var languages = [];
+    tracks.forEach(function(t) {
+      var label = clean(t.language || t.lang || t.name || t.label);
+      label = /^(?:en|eng|english)$/i.test(label) ? 'English' : /^(?:ms|may|malay)$/i.test(label) ? 'Malay' : /^(?:id|ind|indo|indonesian)$/i.test(label) ? 'Indonesian' : label;
+      if (label && languages.indexOf(label) < 0) languages.push(label);
+    });
+    var subType = clean(stream.subtitleType).toLowerCase();
+    var sub = subType === 'hardsub' ? 'Hardsub' : subType === 'softsub' || tracks.length ? 'Softsub' : /\bsub\b/i.test(stream.audioType || '') ? 'Sub' : '';
+    if (languages.length && sub !== 'Hardsub') sub += ': ' + languages.slice(0,2).join(', ') + (languages.length > 2 ? ' +' + (languages.length-2) : '');
+    var lines = [title, [server, quality].filter(Boolean).join(' • '), [Number.isInteger(ep) && ep > 0 ? 'EP ' + ep : '', audio, sub].filter(Boolean).join(' • ')].filter(Boolean);
+    return Object.assign({}, stream, { name: providerName, title: lines.join('\n'), sourceTitle: title, sourceEpisode: Number.isInteger(ep) && ep > 0 ? ep : undefined });
+  });
+}
+function cloudAnimeInstallSourceDetails(provider, providerName) {
+  var original = provider.getStreams;
+  return Object.assign({}, provider, {getStreams:function() {
+    var receiver=this,args=arguments;
+    return Promise.resolve().then(function(){return original.apply(receiver,args);}).then(function(streams){return cloudAnimeSourceDetails(streams,providerName);});
+  }});
+}
+/* CLOUDANIME_SOURCE_DETAILS_END */
+
+module.exports = cloudAnimeInstallSourceDetails(module.exports, "AnimeWorld");
 if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
 if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
 if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
