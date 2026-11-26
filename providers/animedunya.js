@@ -698,7 +698,7 @@ function cloudAnimeInstallSourceDetails(provider, providerName, providerId, logo
 }
 /* CLOUDANIME_SOURCE_DETAILS_END */
 
-module.exports = cloudAnimeInstallSourceDetails(module.exports, "AnimeDunya", "animedunya", "");
+module.exports = cloudAnimeInstallSourceDetails(module.exports, "AnimeDunya", "animedunya", "https://raw.githubusercontent.com/Luckez12/CloudAnime/main/assets/provider-logos/animedunya.png");
 if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
 if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
 if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;

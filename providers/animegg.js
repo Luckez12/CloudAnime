@@ -652,7 +652,7 @@ function cloudAnimeInstallSourceDetails(provider, providerName, providerId, logo
 }
 /* CLOUDANIME_SOURCE_DETAILS_END */
 
-module.exports = cloudAnimeInstallSourceDetails(module.exports, "AnimeGG", "animegg", "");
+module.exports = cloudAnimeInstallSourceDetails(module.exports, "AnimeGG", "animegg", "https://raw.githubusercontent.com/Luckez12/CloudAnime/main/assets/provider-logos/animegg.png");
 if (typeof globalThis !== "undefined") globalThis.getStreams = module.exports.getStreams;
 if (typeof global !== "undefined") global.getStreams = module.exports.getStreams;
 if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
