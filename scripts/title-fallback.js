@@ -117,7 +117,7 @@ async function cloudAnimeRecoverMapping(original, id, type, season, episode, dea
   try {var mapped=await original();if(mapped)return mapped;}
   catch(error){
     // A known conflict is not a missing identity and must never be overridden.
-    if(/conflict|disagree|mismatch|overlap/i.test(String(error&&error.message)))throw error;
+    if(/conflict|disagree|mismatch|overlap|no verified episode mapping|episode mapping metadata unavailable/i.test(String(error&&error.message)))throw error;
   }
   return cloudAnimeTitleFallback(id,type,season,episode,deadline);
 }

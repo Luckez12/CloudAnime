@@ -11,7 +11,7 @@ const data=(mal,local,global)=>({mappings:{mal_id:mal,themoviedb_id:123876,thetv
  await test('original E12 keeps original identity',async()=>{const r=await run(rows,datasets,12);assert.equal(r.id,48926);assert.equal(r.ep,12)});
  await test('reversed and duplicate ARM rows give identical result',async()=>{const r=await run([rows[1],rows[0],rows[1]]);assert.equal(r.ep,2)});
  await test('out of range without episode bridge rejects',async()=>{await assert.rejects(run([rows[0]]))});
- await test('wrong series identity rejects',async()=>{const d=JSON.parse(JSON.stringify(datasets));d[99999].mappings.themoviedb_id=1;await assert.rejects(run(rows,d))});
+ await test('wrong series identity rejects',async()=>{const d=JSON.parse(JSON.stringify(datasets));d[99999].mappings.themoviedb_id=1;d[99999].mappings.thetvdb_id=1;await assert.rejects(run(rows,d))});
  await test('ambiguous entries reject',async()=>{const d=JSON.parse(JSON.stringify(datasets));d[48926]=data(48926,14,14);await assert.rejects(run(rows,d))});
  await test('metadata outage cannot silently use original E14',async()=>{await assert.rejects(ctx.cloudAnimeLinkedEpisode(rows,async()=>{throw Error('503')},1,14))});
  await test('wrong TVDB episode season rejects out-of-range request',async()=>{const d=JSON.parse(JSON.stringify(datasets));d[99999].episodes[2].seasonNumber=2;await assert.rejects(run(rows,d))});

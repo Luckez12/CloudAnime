@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate": "node scripts/validate.mjs && npm run test:title-fallback && node scripts/test-linked-episode.cjs && node scripts/test-source-details.cjs",
+    "validate": "node scripts/validate.mjs && npm run test:title-fallback && node scripts/test-linked-episode.cjs && node scripts/test-source-details.cjs && node scripts/test-episode-date-fallback.cjs",
     "test:title-fallback": "node scripts/test-title-fallback.cjs && node scripts/test-title-fallback-integration.cjs && node scripts/test-animekai-title-fallback.cjs && node scripts/test-animekai-v205.cjs"
   },
   "engines": {

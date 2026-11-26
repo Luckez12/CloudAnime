@@ -7,15 +7,15 @@ function sandbox(working){
  const calls=[];
  const fetch=async(u,o={})=>{
   calls.push(u);let d;
-  if(u.includes('arm.haglund'))d=working==='combined'?[{...arm,'themoviedb-season':1,'thetvdb-season':1,myanimelist:48926,anilist:201},{...arm,'themoviedb-season':2,'thetvdb-season':2,myanimelist:50631,anilist:202}]:working?[arm]:[];
+  if(u.includes('arm.haglund'))d=['combined','date'].includes(working)?[{...arm,'themoviedb-season':1,'thetvdb-season':1,myanimelist:48926,anilist:201},{...arm,'themoviedb-season':2,'thetvdb-season':2,myanimelist:50631,anilist:202}]:working?[arm]:[];
   else if(u.includes('graphql.anilist'))d={data:{Page:{pageInfo:{hasNextPage:false},media:[{id:191788,idMal:61603,countryOfOrigin:'JP',format:'TV',episodes:24,title:{english:'Aoashi Season 2',romaji:'Aoashi 2nd Season'}}]}}};
   else if(u.includes('cinemeta'))d={meta:{videos:[{season:2,episode:2,released:'2020-01-02T12:00:00Z'}]}};
-  else if(working==='combined'&&u.includes('api.ani.zip')){const mal=Number(new URL(u).searchParams.get('mal_id')),part=mal===48926?1:2;d={mappings:{mal_id:mal,anilist_id:part===1?201:202,themoviedb_id:126437,thetvdb_id:407840},titles:{en:'Fixture Season '+part},episodeCount:12,episodes:Object.fromEntries(Array.from({length:12},(_,i)=>[i+1,{episode:i+1,seasonNumber:part,episodeNumber:i+1,absoluteEpisodeNumber:(part-1)*12+i+1,tvdbShowId:407840}]))};}
+  else if(['combined','date'].includes(working)&&u.includes('api.ani.zip')){const mal=Number(new URL(u).searchParams.get('mal_id')),part=mal===48926?1:2;d={mappings:{mal_id:mal,anilist_id:part===1?201:202,themoviedb_id:126437,thetvdb_id:407840},titles:{en:'Fixture Season '+part},episodeCount:12,episodes:Object.fromEntries(Array.from({length:12},(_,i)=>[i+1,{episode:i+1,seasonNumber:part,episodeNumber:i+1,absoluteEpisodeNumber:working==='date'?undefined:(part-1)*12+i+1,airDate:part===2&&i===1?'2026-10-08':'2026-01-01',tvdbShowId:407840}]))};}
   else if(u.includes('api.ani.zip'))d={mappings:{mal_id:61603,anilist_id:191788,themoviedb_id:126437,thetvdb_id:407840},titles:{en:'Aoashi Season 2'},episodeCount:24,episodes:{2:{episode:2,airdate:'2020-01-02',airDate:'2020-01-02',seasonNumber:2,episodeNumber:2,tvdbShowId:407840}}};
   else throw Error('Unexpected HTTP '+u);
   return {ok:true,status:200,text:async()=>JSON.stringify(d),json:async()=>d,headers:{get:()=>null}};
  };
- const ctx={module:{exports:{}},exports:{},fetch,require,URL,AbortController,setTimeout,clearTimeout,console:{log(){},error(){}},VUEO_DISCOVERY_CONTEXT:context,atob,btoa,TextEncoder,TextDecoder,Buffer};vm.createContext(ctx);
+ const ctx={module:{exports:{}},exports:{},fetch,require,URL,AbortController,setTimeout,clearTimeout,console:{log(){},error(){}},VUEO_DISCOVERY_CONTEXT:context,atob,btoa,TextEncoder,TextDecoder,Buffer};if(working==='date')ctx.vueoDiscoveryContext=async url=>{calls.push(url);return {season_number:1,episodes:[{season_number:1,episode_number:14,air_date:'2026-10-08'}]};};vm.createContext(ctx);
  return {ctx,calls,fetch};
 }
 function instrumentDirect(code,name){
@@ -30,11 +30,11 @@ function instrumentDirect(code,name){
 }
 async function direct(name,working){
  const s=sandbox(working);const code=instrumentDirect(fs.readFileSync('providers/'+name+'.js','utf8'),name);
- vm.runInContext(code,s.ctx);return {value:await s.ctx.module.exports.getStreams('126437','tv',working==='combined'?1:2,working==='combined'?14:2),calls:s.calls};
+ vm.runInContext(code,s.ctx);return {value:await s.ctx.module.exports.getStreams('126437','tv',['combined','date'].includes(working)?1:2,['combined','date'].includes(working)?14:2),calls:s.calls};
 }
 async function legacy(name,working){
  const s=sandbox(working);vm.runInContext(fs.readFileSync('providers/'+name+'.js','utf8'),s.ctx);
- const mapped=await s.ctx.cloudbankAnimeMappingFetch(s.fetch,Date.now()+20000)('https://id-mapping-api-malid.hf.space/api/resolve?id=126437&s='+(working==='combined'?1:2)+'&e='+(working==='combined'?14:2));
+ const mapped=await s.ctx.cloudbankAnimeMappingFetch(s.fetch,Date.now()+20000)('https://id-mapping-api-malid.hf.space/api/resolve?id=126437&s='+(['combined','date'].includes(working)?1:2)+'&e='+(['combined','date'].includes(working)?14:2));
  return {value:await mapped.json(),calls:s.calls};
 }
 (async()=>{
@@ -49,6 +49,8 @@ async function legacy(name,working){
  }
  for(const name of ['allanime','animekai','hianime','kurage','reanime','vidnest']){const r=await direct(name,'combined');assert.equal(r.value.id,['kurage','reanime','vidnest'].includes(name)?202:50631,name);assert.equal(r.value.ep||r.value.episode,2,name);console.log('PASS '+name+' continuous E14 -> next anime local E2');n++;}
  for(const name of ['animedunya','animegg','animenosub','animeonsen','anipm','animetsu','anizone']){const r=await legacy(name,'combined');assert.equal(r.value.mal_id,50631,name);assert.equal(r.value.anilist,202,name);assert.equal(r.value.episode,2,name);console.log('PASS '+name+' continuous episode adapter');n++;}
+ for(const name of ['allanime','animekai','hianime','kurage','reanime','vidnest']){const r=await direct(name,'date');assert.equal(r.value.id,['kurage','reanime','vidnest'].includes(name)?202:50631,name);assert.equal(r.value.ep||r.value.episode,2,name);assert.equal(r.value.method,'verified episode date fallback');console.log('PASS '+name+' date fallback adapter');n++;}
+ for(const name of ['animedunya','animegg','animenosub','animeonsen','anipm','animetsu','anizone']){const r=await legacy(name,'date');assert.equal(r.value.mal_id,50631,name);assert.equal(r.value.episode,2,name);assert.equal(r.value.mapping_method,'verified episode date fallback');console.log('PASS '+name+' date fallback full identity');n++;}
  // Verify the existing AllAnime bootstrap still starts while mapping is pending.
  {
   const s=sandbox(true),native=s.ctx.fetch;
