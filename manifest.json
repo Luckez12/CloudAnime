@@ -1,12 +1,12 @@
 {
   "name": "CloudAnime",
-  "version": "1.10.5",
+  "version": "1.10.6",
   "scrapers": [
     {
       "id": "allanime",
       "name": "AllAnime",
       "description": "Anime \u00b7 Japanese Sub \u00b7 exact AniList/MAL identity \u00b7 current website crypto",
-      "version": "2.0.9",
+      "version": "2.0.10",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -42,7 +42,7 @@
       "id": "animekai",
       "name": "AnimeKai",
       "description": "Anime \u00b7 Japanese Sub \u00b7 verified website episode \u00b7 MegaPlay/MegaVid race",
-      "version": "2.0.12",
+      "version": "2.0.13",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -76,7 +76,7 @@
       "id": "anizone",
       "name": "AniZone",
       "description": "Anime \u00b7 Sub only \u00b7 Japanese audio; dub, mixed and unlabelled audio results excluded",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -110,7 +110,7 @@
       "id": "animesalt",
       "name": "AnimeSalt",
       "description": "Anime \u00b7 Japanese Sub \u00b7 generic site episode ranges \u00b7 ARM/AniZip identity bridge \u00b7 Ravok + MegaPlay",
-      "version": "2.3.7",
+      "version": "2.3.8",
       "author": "CloudAnime / upstream contributors",
       "supportedTypes": [
         "movie",
@@ -147,7 +147,7 @@
       "id": "animetsu",
       "name": "Animetsu",
       "description": "Anime \u00b7 Japanese Sub \u00b7 Animetsu.site \u00b7 Bee HLS + GG MP4",
-      "version": "2.1.10",
+      "version": "2.1.11",
       "author": "CloudAnime / Animetsu website contributors",
       "supportedTypes": [
         "movie",
@@ -174,7 +174,7 @@
       "id": "animeworld",
       "name": "AnimeWorld",
       "description": "Anime \u00b7 Japanese original audio only \u00b7 exact title/year and episode",
-      "version": "2.0.11",
+      "version": "2.0.12",
       "author": "piratezoro9",
       "supportedTypes": [
         "movie",
@@ -208,7 +208,7 @@
       "id": "hianime",
       "name": "HiAnime",
       "description": "Anime \u00b7 Japanese/Sub only \u00b7 Verified MAL episode mapping \u00b7 Current MegaPlay encrypted extraction and website CDN failover",
-      "version": "2.0.10",
+      "version": "2.0.11",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -242,7 +242,7 @@
       "id": "kurage",
       "name": "Kurage",
       "description": "Anime \u00b7 Japanese Sub \u00b7 exact ID mapping \u00b7 one source request \u00b7 no duplicate engines",
-      "version": "2.0.8",
+      "version": "2.0.9",
       "author": "Paregi12",
       "supportedTypes": [
         "movie",
@@ -279,7 +279,7 @@
       "id": "reanime",
       "name": "Reanime",
       "description": "Anime \u00b7 Japanese Sub \u00b7 HD-1 + HD-2 \u00b7 Provider-defined HLS instructions v1",
-      "version": "2.0.13",
+      "version": "2.0.14",
       "author": "Nuvio Team",
       "supportedTypes": [
         "movie",
@@ -312,7 +312,7 @@
       "id": "vidnest-anime",
       "name": "VidNest",
       "description": "Anime \u00b7 Japanese Sub \u00b7 Aniwave \u00b7 HTTP only",
-      "version": "2.0.9",
+      "version": "2.0.10",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -345,7 +345,7 @@
       "id": "animenosub",
       "name": "AnimeNoSub",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
-      "version": "1.1.9",
+      "version": "1.1.10",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -371,7 +371,7 @@
       "id": "animedunya",
       "name": "AnimeDunya",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 English, Malay and Indo subtitles",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -394,7 +394,7 @@
       "id": "animeonsen",
       "name": "AnimeOnsen",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 DASH + English, Malay and Indo subtitles",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -417,7 +417,7 @@
       "id": "animegg",
       "name": "AnimeGG",
       "description": "Anime \u00b7 Sub only \u00b7 Direct MP4/HLS \u00b7 Japanese audio",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",
@@ -441,7 +441,7 @@
       "id": "anipm",
       "name": "Ani.pm",
       "description": "Anime \u00b7 Japanese audio \u00b7 Sub only \u00b7 Softsub/Hardsub HLS",
-      "version": "1.0.12",
+      "version": "1.0.13",
       "author": "CloudAnime",
       "supportedTypes": [
         "movie",

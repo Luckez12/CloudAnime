@@ -881,6 +881,7 @@ if (typeof self !== "undefined") self.getStreams = module.exports.getStreams;
 function cloudAnimeSourceDetails(streams, providerName, providerId, logo) {
   if (!Array.isArray(streams)) return streams;
   function clean(value) { return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() : ''; }
+  var circles = {allanime:'🟤',animekai:'🟢',anizone:'🟣',animesalt:'🟣',animetsu:'⚪',animeworld:'🔵',hianime:'🟣',kurage:'🔴',reanime:'🟢','vidnest-anime':'⚪',animenosub:'🔵',animedunya:'⚪',animeonsen:'⚪',animegg:'🟠',anipm:'⚪'};
   return streams.map(function(stream) {
     if (!stream || typeof stream !== 'object') return stream;
     var old = clean(stream.title), title = clean(stream.sourceTitle || stream.animeTitle);
@@ -904,11 +905,14 @@ function cloudAnimeSourceDetails(streams, providerName, providerId, logo) {
     });
     var subType = clean(stream.subtitleType).toLowerCase();
     var sub = subType === 'hardsub' ? 'Hardsub' : subType === 'softsub' || tracks.length ? 'Softsub' : /\bsub\b/i.test(stream.audioType || '') ? 'Sub' : '';
-    if (languages.length && sub !== 'Hardsub') sub += ' • ' + languages.slice(0,2).join(', ') + (languages.length > 2 ? ' +' + (languages.length-2) : '');
+    if (languages.length && sub !== 'Hardsub') sub += ': ' + languages.slice(0,2).join(', ') + (languages.length > 2 ? ' +' + (languages.length-2) : '');
     var mediaType = clean(stream.type).toLowerCase(), mime = clean(stream.mimeType).toLowerCase().split(';')[0];
     var format = /^(?:hls|m3u8)$/.test(mediaType) ? 'HLS' : mediaType === 'mp4' ? 'MP4' : /^(?:dash|mpd)$/.test(mediaType) ? 'DASH' : /^(?:application\/(?:x-mpegurl|vnd.apple.mpegurl))$/.test(mime) ? 'HLS' : mime === 'video/mp4' ? 'MP4' : mime === 'application/dash+xml' ? 'DASH' : '';
-    var lines = [[title, Number.isInteger(ep) && ep > 0 ? 'EP ' + ep : ''].filter(Boolean).join(' • '), [server, quality, format].filter(Boolean).join(' • '), [sub, audio].filter(Boolean).join(' • ')].filter(Boolean);
-    var output = Object.assign({}, stream, { name: providerName, title: lines.join('\n'), serverName: server, sourceTitle: title, sourceEpisode: Number.isInteger(ep) && ep > 0 ? ep : undefined });
+    var titleLine = [title, Number.isInteger(ep) && ep > 0 ? 'EP ' + ep : ''].filter(Boolean).join(' | ');
+    var videoLine = [server, quality, format].filter(Boolean).join(' | ');
+    var subtitleLine = [sub ? '💬 ' + sub : '', audio ? '🔊 ' + audio : ''].filter(Boolean).join(' | ');
+    var lines = [titleLine ? '🎬 ' + titleLine : '', videoLine ? '🌐 ' + videoLine : '', subtitleLine].filter(Boolean);
+    var output = Object.assign({}, stream, { name: (circles[providerId] || '⚪') + ' ' + providerName, title: lines.join('\n'), serverName: server, sourceTitle: title, sourceEpisode: Number.isInteger(ep) && ep > 0 ? ep : undefined });
     // Use the same identity/server fields as the providers already rendering correctly.
     delete output.server;
     if (providerId) output.provider = providerId;
